@@ -1,4 +1,5 @@
 import NetInfo from '@react-native-community/netinfo';
+import { Platform } from 'react-native';
 
 export type ConnectivityCallback = (isConnected: boolean) => void;
 
@@ -8,15 +9,19 @@ class ConnectivityService {
   private unsubscribeNetInfo: (() => void) | null = null;
 
   constructor() {
-    // Initialize connection state
-    NetInfo.fetch().then((state) => {
-      this.updateState(state.isConnected ?? false);
-    });
+    const isSSR = Platform.OS === 'web' && typeof window === 'undefined';
 
-    // Subscribe to state change events
-    this.unsubscribeNetInfo = NetInfo.addEventListener((state) => {
-      this.updateState(state.isConnected ?? false);
-    });
+    if (!isSSR) {
+      // Initialize connection state
+      NetInfo.fetch().then((state) => {
+        this.updateState(state.isConnected ?? false);
+      });
+
+      // Subscribe to state change events
+      this.unsubscribeNetInfo = NetInfo.addEventListener((state) => {
+        this.updateState(state.isConnected ?? false);
+      });
+    }
   }
 
   private updateState(connected: boolean) {

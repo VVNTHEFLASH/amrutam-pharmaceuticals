@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
@@ -148,7 +149,17 @@ export const useClientStore = create<ClientStore>()(
     }),
     {
       name: 'amrutam-client-store',
-      storage: createJSONStorage(() => AsyncStorage),
+      storage: createJSONStorage(() => {
+        const isSSR = Platform.OS === 'web' && typeof window === 'undefined';
+        if (isSSR) {
+          return {
+            getItem: async () => null,
+            setItem: async () => {},
+            removeItem: async () => {},
+          };
+        }
+        return AsyncStorage;
+      }),
       partialize: (state) => ({
         cart: state.cart,
         wishlist: state.wishlist,

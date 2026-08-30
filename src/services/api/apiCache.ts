@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
 export interface CacheEntry<T> {
   value: T;
@@ -9,8 +10,13 @@ export interface CacheEntry<T> {
 const CACHE_PREFIX = '@api_cache:';
 const DEFAULT_TTL = 5 * 60 * 1000; // 5 minutes
 
+const isSSR = Platform.OS === 'web' && typeof window === 'undefined';
+
 export const apiCache = {
   async set<T>(endpoint: string, value: T, ttl: number = DEFAULT_TTL): Promise<void> {
+    if (isSSR) {
+      return;
+    }
     try {
       const entry: CacheEntry<T> = {
         value,
@@ -24,6 +30,9 @@ export const apiCache = {
   },
 
   async get<T>(endpoint: string): Promise<CacheEntry<T> | null> {
+    if (isSSR) {
+      return null;
+    }
     try {
       const data = await AsyncStorage.getItem(CACHE_PREFIX + endpoint);
       if (!data) {
@@ -41,6 +50,9 @@ export const apiCache = {
   },
 
   async remove(endpoint: string): Promise<void> {
+    if (isSSR) {
+      return;
+    }
     try {
       await AsyncStorage.removeItem(CACHE_PREFIX + endpoint);
     } catch (e) {

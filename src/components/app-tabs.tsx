@@ -1,7 +1,7 @@
-import { Tabs } from 'expo-router';
-import { useColorScheme, Platform } from 'react-native';
-import { Stethoscope, ShoppingBag, Calendar, ClipboardList } from 'lucide-react-native';
 import { Colors } from '@/constants/theme';
+import { Tabs } from 'expo-router';
+import { Calendar, ClipboardList, ShoppingBag, Stethoscope } from 'lucide-react-native';
+import { Platform, useColorScheme } from 'react-native';
 
 export default function AppTabs() {
   const scheme = useColorScheme();
