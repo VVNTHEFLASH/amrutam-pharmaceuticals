@@ -18,7 +18,9 @@ function mapDbBooking(row: any): Booking {
 
 export const bookingRepository = {
   async createBooking(booking: Booking, userId: string): Promise<Booking> {
+    console.log(`[BookingRepository] createBooking: ${booking.id}`);
     if (!isSupabaseConfigured) {
+      console.log(`[BookingRepository] Supabase insert/upsert succeeded (mocked) for booking: ${booking.id}`);
       return { ...booking, userId, status: 'synchronized' };
     }
 
@@ -39,9 +41,11 @@ export const bookingRepository = {
       .single();
 
     if (error) {
+      console.error(`[BookingRepository] Supabase insert failed: ${error.message} (code: ${error.code})`);
       throw new AppError('UNKNOWN_FAILURE', `Failed to create booking in Supabase: ${error.message}`, error);
     }
 
+    console.log(`[BookingRepository] Supabase insert/upsert succeeded for booking: ${booking.id}`);
     return mapDbBooking(data);
   },
 

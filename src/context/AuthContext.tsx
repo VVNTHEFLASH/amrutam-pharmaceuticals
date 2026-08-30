@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '@/services/supabase';
 import { User, Session, AuthChangeEvent } from '@supabase/supabase-js';
 import { profileRepository } from '@/services/repositories/profileRepository';
@@ -25,6 +25,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(isSupabaseConfigured);
 
+  const userRef = useRef<User | null>(null);
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+
   const fetchAndSetProfile = async (userId: string) => {
     try {
       const userProfile = await profileRepository.getProfile(userId);
@@ -47,6 +52,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (initialSession) {
         setSession(initialSession);
         setUser(initialSession.user);
+        userRef.current = initialSession.user;
         fetchAndSetProfile(initialSession.user.id).then(async () => {
           try {
             const { reconciliationService } = require('@/services/reconciliationService');
@@ -70,11 +76,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Listen to changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, newSession: Session | null) => {
       if (!isMounted) return;
+
+      const previousUserId = userRef.current?.id;
+      const newUserId = newSession?.user?.id;
+
       setSession(newSession);
       setUser(newSession?.user ?? null);
+      if (newSession?.user) {
+        userRef.current = newSession.user;
+      } else {
+        userRef.current = null;
+      }
 
       if (newSession?.user) {
         setIsLoading(true);
+
+        if (previousUserId && previousUserId !== newUserId) {
+          console.log(`[AuthContext] User changed from ${previousUserId} to ${newUserId}. Clearing store on session switch.`);
+          try {
+            const useClientStore = require('@/store/clientStore').useClientStore;
+            useClientStore.setState({
+              cart: [],
+              wishlist: [],
+              bookingQueue: [],
+              wishlistQueue: [],
+              cartQueue: [],
+            });
+            const { apiCache } = require('@/services/api/apiCache');
+            await apiCache.clearAll();
+          } catch (storeErr) {
+            console.error('Error resetting store on user change:', storeErr);
+          }
+        }
+
         await fetchAndSetProfile(newSession.user.id);
         
         try {
@@ -100,6 +134,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           });
         } catch (storeErr) {
           console.error('Error clearing store on logout:', storeErr);
+        }
+        try {
+          const { apiCache } = require('@/services/api/apiCache');
+          apiCache.clearAll().catch((err: any) => console.error('Error clearing cache:', err));
+        } catch (cacheErr) {
+          console.error('Error importing apiCache on logout:', cacheErr);
         }
       }
     });
@@ -154,6 +194,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
     setSession(null);
     setProfile(null);
+    try {
+      const { apiCache } = require('@/services/api/apiCache');
+      await apiCache.clearAll();
+    } catch (cacheErr) {
+      console.error('Error clearing cache on explicit signOut:', cacheErr);
+    }
   };
 
   const updateProfile = async (updates: Partial<Omit<Profile, 'id' | 'createdAt' | 'updatedAt'>>) => {

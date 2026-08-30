@@ -37,6 +37,7 @@ export default function DoctorsScreen() {
     setSelectedDoctor,
     setSelectedDate,
     bookSlot,
+    retryDoctors,
   } = useConsultation();
   const queue = useClientStore((s) => s.bookingQueue);
   const theme = useTheme();
@@ -176,9 +177,19 @@ export default function DoctorsScreen() {
         {loading ? (
           <ThemedText type="small">Loading...</ThemedText>
         ) : error ? (
-          <ThemedText type="small" style={{ color: 'red' }}>
-            {error}
-          </ThemedText>
+          <View style={{ gap: Spacing.two, alignItems: 'flex-start', marginVertical: Spacing.two }}>
+            <ThemedText type="small" style={{ color: 'red' }}>
+              {error}
+            </ThemedText>
+            <Pressable
+              style={s.btn}
+              accessibilityLabel="Retry loading doctors"
+              onPress={retryDoctors}>
+              <ThemedText type="smallBold" style={{ color: '#fff', paddingVertical: Spacing.one }}>
+                Retry
+              </ThemedText>
+            </Pressable>
+          </View>
         ) : doctors.length === 0 ? (
           <ThemedText type="small">No doctors.</ThemedText>
         ) : (

@@ -59,4 +59,32 @@ export const apiCache = {
       // Ignored
     }
   },
+
+  async clearAll(): Promise<void> {
+    if (isSSR) {
+      return;
+    }
+    try {
+      if (Platform.OS === 'web') {
+        const keys: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith(CACHE_PREFIX)) {
+            keys.push(key);
+          }
+        }
+        for (const key of keys) {
+          localStorage.removeItem(key);
+        }
+      } else {
+        const keys = await AsyncStorage.getAllKeys();
+        const cacheKeys = keys.filter((key) => key.startsWith(CACHE_PREFIX));
+        if (cacheKeys.length > 0) {
+          await AsyncStorage.multiRemove(cacheKeys);
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to clear apiCache:', e);
+    }
+  },
 };

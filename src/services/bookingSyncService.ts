@@ -3,21 +3,18 @@ import { bookingRepository } from '@/services/repositories/bookingRepository';
 import type { useClientStore as useClientStoreType } from '@/store/clientStore';
 import { Booking } from '@/types/domain';
 import { AppError } from '@/types/errors';
+import { supabase, isSupabaseConfigured } from '@/services/supabase';
+import { timeProvider } from '@/services/timeProvider';
 
 let isSyncing = false;
 
-// Get dynamic current time for validity checks
-let customNowFn: (() => Date) | null = null;
-
+// Proxy current time functions to the central timeProvider
 export function getCurrentTime(): Date {
-  if (customNowFn) {
-    return customNowFn();
-  }
-  return new Date();
+  return timeProvider.getCurrentTime();
 }
 
 export function setCustomNowFn(fn: (() => Date) | null) {
-  customNowFn = fn;
+  timeProvider.setCustomNowFn(fn);
 }
 
 export const bookingSyncService = {
@@ -40,8 +37,8 @@ export const bookingSyncService = {
     }
 
     const pendingItems = store.bookingQueue.filter((b) => b.status === 'pending');
+    console.log(`[SyncService] pending bookings: ${pendingItems.length}`);
     if (pendingItems.length === 0) {
-      console.log('[SyncService] no pending items, aborting sync');
       return;
     }
 
@@ -50,14 +47,33 @@ export const bookingSyncService = {
     store.setSyncStatus('syncing');
 
     try {
+      let activeUserId: string | undefined = undefined;
+      if (isSupabaseConfigured && supabase?.auth) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          activeUserId = session.user.id;
+        }
+      }
+
       for (const booking of pendingItems) {
+        console.log(`[SyncService] processing booking: ${booking.id}`);
+        console.log(`[SyncService] active user: ${activeUserId || 'none'}`);
+
         const attempts = (booking.attempts || 0) + 1;
         store.updateBookingInQueue(booking.id, { attempts });
 
         try {
           if (booking.mutationType === 'CANCEL') {
-            if (booking.userId) {
-              await bookingRepository.deleteBooking(booking.id, booking.userId);
+            if (isSupabaseConfigured) {
+              if (!activeUserId) {
+                console.warn(`[SyncService] No active user for cancel mutation of booking ${booking.id}`);
+                continue;
+              }
+              if (booking.userId && booking.userId !== activeUserId) {
+                console.error(`[SyncService] Cross-tenant isolation violation: cancel booking ${booking.id} belongs to user ${booking.userId}, but active user is ${activeUserId}`);
+                continue;
+              }
+              await bookingRepository.deleteBooking(booking.id, activeUserId);
             }
             store.removeQueuedBooking(booking.id);
             continue;
@@ -65,8 +81,9 @@ export const bookingSyncService = {
 
           // 1. Expiry Check
           const bookingDate = new Date(booking.dateTime);
-          const now = getCurrentTime();
+          const now = timeProvider.getCurrentTime();
           if (bookingDate.getTime() < now.getTime()) {
+            console.warn(`[SyncService] booking ${booking.id} expired. Slot time: ${bookingDate.toISOString()}, Check time: ${now.toISOString()}`);
             store.updateBookingInQueue(booking.id, {
               status: 'failed',
               errorReason: 'Selected slot has expired.',
@@ -115,26 +132,54 @@ export const bookingSyncService = {
             continue;
           }
 
-          // Synchronize successfully
-          if (booking.userId) {
-            await bookingRepository.createBooking({
-              ...booking,
-              status: 'synchronized',
-            }, booking.userId);
+          let targetUserId = booking.userId;
+          if (isSupabaseConfigured) {
+            if (!activeUserId) {
+              const errMsg = 'No authenticated user session found. Cannot sync booking.';
+              console.error(`[SyncService] ${errMsg}`);
+              store.updateBookingInQueue(booking.id, {
+                errorReason: errMsg,
+              });
+              // Leave retryable
+              continue;
+            }
+            if (!targetUserId) {
+              targetUserId = activeUserId;
+              store.updateBookingInQueue(booking.id, { userId: targetUserId });
+              console.log(`[SyncService] Associated unowned booking ${booking.id} with active user ${targetUserId}`);
+            } else if (targetUserId !== activeUserId) {
+              const errMsg = `Cross-tenant isolation: booking ${booking.id} belongs to user ${targetUserId}, but active user is ${activeUserId}.`;
+              console.error(`[SyncService] ${errMsg}`);
+              store.updateBookingInQueue(booking.id, {
+                status: 'failed',
+                errorReason: errMsg,
+              });
+              continue;
+            }
           }
+
+          // Call the repository to save
+          await bookingRepository.createBooking({
+            ...booking,
+            userId: targetUserId || 'guest',
+            status: 'synchronized',
+          }, targetUserId || 'guest');
 
           store.updateBookingInQueue(booking.id, {
             status: 'synchronized',
             errorReason: undefined,
           });
+
+          console.log(`[SyncService] booking synchronized: ${booking.id}`);
         } catch (e: any) {
           const errMessage = e instanceof AppError ? e.message : String(e);
+          console.error(`[BookingRepository] Supabase insert failed: ${errMessage}`);
+          console.error(`[SyncService] booking remains retryable: ${booking.id}`);
 
           if (e instanceof AppError && (e.code === 'NETWORK_FAILURE' || e.code === 'TIMEOUT')) {
             store.updateBookingInQueue(booking.id, {
               errorReason: errMessage,
             });
-            // Stop syncing subsequent items on network failure to avoid spamming/loops
             throw e;
           } else {
             store.updateBookingInQueue(booking.id, {

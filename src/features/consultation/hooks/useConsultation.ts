@@ -7,10 +7,9 @@ import { Doctor } from '@/types/domain';
 import { AppError } from '@/types/errors';
 import { useAuth } from '@/context/AuthContext';
 import { bookingSyncService } from '@/services/bookingSyncService';
+import { timeProvider } from '@/services/timeProvider';
 
 import { isSlotExpired, parseSlotDateTime } from '../utils/dateUtils';
-
-const NOW = new Date(2026, 7, 30, 11, 0); // Sunday, Aug 30, 2026 at 11:00 AM
 
 export function useConsultation() {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
@@ -110,7 +109,8 @@ export function useConsultation() {
       }
 
       const slotDate = parseSlotDateTime(dateStr, slotTime);
-      if (isSlotExpired(dateStr, slotTime, NOW)) {
+      const currentNow = timeProvider.getCurrentTime();
+      if (isSlotExpired(dateStr, slotTime, currentNow)) {
         throw new AppError('UNKNOWN_FAILURE', 'Selected slot has expired.');
       }
 
@@ -149,7 +149,12 @@ export function useConsultation() {
         dateTime: slotDate.toISOString(),
         patientName: 'Vishnu Sowmiya',
         status: 'pending',
-        createdAt: NOW.toISOString(),
+        createdAt: currentNow.toISOString(),
+      });
+
+      // Background synchronization
+      bookingSyncService.sync().catch((err) => {
+        console.error('[useConsultation] Background sync failed:', err);
       });
 
       try {
@@ -167,7 +172,8 @@ export function useConsultation() {
       if (!booking) {
         throw new AppError('UNKNOWN_FAILURE', 'Booking not found.');
       }
-      if (new Date(booking.dateTime).getTime() < NOW.getTime()) {
+      const currentNow = timeProvider.getCurrentTime();
+      if (new Date(booking.dateTime).getTime() < currentNow.getTime()) {
         throw new AppError('UNKNOWN_FAILURE', 'Cannot cancel expired consultations.');
       }
       if (booking.userId) {

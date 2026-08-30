@@ -67,6 +67,10 @@ export const reconciliationService = {
 
     // Merge local bookings
     for (const b of localBookings) {
+      if (b.userId && b.userId !== userId) {
+        console.warn(`[Reconciliation] Discarding booking ${b.id} because it belongs to user ${b.userId} and current user is ${userId}`);
+        continue;
+      }
       const updatedLocalBooking = { ...b, userId: b.userId || userId };
       
       // If it exists in remote, keep the remote state (with potentially updated status)

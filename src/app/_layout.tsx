@@ -6,6 +6,7 @@ import { useColorScheme } from 'react-native';
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import AppTabs from '@/components/app-tabs';
 import { ToastContainer } from '@/components/toast-container';
+import { ConnectionBanner } from '@/components/connection-banner';
 import { AuthProvider } from '@/context/AuthContext';
 
 SplashScreen.preventAutoHideAsync();
@@ -27,6 +28,7 @@ export default function TabLayout() {
     <AuthProvider>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <AnimatedSplashOverlay />
+        <ConnectionBanner />
         <AppTabs />
         <ToastContainer />
       </ThemeProvider>
