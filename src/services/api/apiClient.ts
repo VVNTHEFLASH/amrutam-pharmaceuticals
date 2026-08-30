@@ -28,7 +28,7 @@ class ApiMockConfig {
 export const apiMockConfig = new ApiMockConfig();
 
 export const apiClient = {
-  async execute<T>(endpoint: string, queryFn: () => T): Promise<T> {
+  async execute<T>(endpoint: string, queryFn: () => T | Promise<T>): Promise<T> {
     const isConnected = connectivityService.getIsConnected();
     const mode = apiMockConfig.getMode();
     const latency = apiMockConfig.getLatency();
@@ -71,7 +71,7 @@ export const apiClient = {
     }
 
     try {
-      const data = queryFn();
+      const data = await queryFn();
       if (data === undefined || data === null) {
         throw new Error('Empty response');
       }

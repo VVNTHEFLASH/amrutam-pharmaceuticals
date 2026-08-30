@@ -4,6 +4,7 @@ import { AppError } from '@/types/errors';
 
 import { apiClient } from '../api/apiClient';
 import { getProductByIndex, TOTAL_PRODUCTS } from '../mockData';
+import { supabase, isSupabaseConfigured } from '../supabase';
 
 function buildMetadata(totalCount: number, page: number, pageSize: number): PaginationMetadata {
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
@@ -15,6 +16,19 @@ function buildMetadata(totalCount: number, page: number, pageSize: number): Pagi
     totalPages,
     hasNextPage: currentPage < totalPages,
     hasPreviousPage: currentPage > 1,
+  };
+}
+
+function mapDbProduct(row: any): Product {
+  return {
+    id: row.id,
+    name: row.name,
+    category: row.category,
+    price: Number(row.price),
+    description: row.description,
+    imageUrl: row.image_url,
+    rating: Number(row.rating),
+    stock: row.stock,
   };
 }
 
@@ -32,9 +46,72 @@ export const productRepository = {
     ].filter(Boolean).sort().join('&');
     const cacheKey = `products?${parts}`;
 
-    return apiClient.execute(cacheKey, () => {
+    return apiClient.execute(cacheKey, async () => {
       const page = query.page || 1;
       const pageSize = query.pageSize || 10;
+
+      if (isSupabaseConfigured) {
+        let queryBuilder = supabase.from('products').select('*', { count: 'exact' });
+
+        if (query.category) {
+          queryBuilder = queryBuilder.eq('category', query.category);
+        }
+
+        if (query.minPrice !== undefined) {
+          queryBuilder = queryBuilder.gte('price', query.minPrice);
+        }
+
+        if (query.maxPrice !== undefined) {
+          queryBuilder = queryBuilder.lte('price', query.maxPrice);
+        }
+
+        if (query.minRating !== undefined) {
+          queryBuilder = queryBuilder.gte('rating', query.minRating);
+        }
+
+        if (query.search) {
+          const searchClean = query.search.trim();
+          queryBuilder = queryBuilder.or(`name.ilike.%${searchClean}%,category.ilike.%${searchClean}%,description.ilike.%${searchClean}%`);
+        }
+
+        if (query.sort) {
+          switch (query.sort) {
+            case 'price_asc':
+              queryBuilder = queryBuilder.order('price', { ascending: true });
+              break;
+            case 'price_desc':
+              queryBuilder = queryBuilder.order('price', { ascending: false });
+              break;
+            case 'rating_desc':
+              queryBuilder = queryBuilder.order('rating', { ascending: false });
+              break;
+            case 'name_asc':
+              queryBuilder = queryBuilder.order('name', { ascending: true });
+              break;
+          }
+        }
+
+        // Always order by seed_index as stable secondary sorting to preserve index order
+        queryBuilder = queryBuilder.order('seed_index', { ascending: true });
+
+        const start = (page - 1) * pageSize;
+        const end = start + pageSize - 1;
+        queryBuilder = queryBuilder.range(start, end);
+
+        const { data, count, error } = await queryBuilder;
+        if (error || !data) {
+          throw new AppError('UNKNOWN_FAILURE', `Failed to fetch products from Supabase: ${error?.message || 'Empty response'}`, error);
+        }
+
+        const totalCount = count || 0;
+        const metadata = buildMetadata(totalCount, page, pageSize);
+        const items = data.map(mapDbProduct);
+
+        return {
+          items,
+          metadata,
+        };
+      }
 
       const filtered: Product[] = [];
       for (let i = 0; i < TOTAL_PRODUCTS; i++) {
@@ -101,7 +178,7 @@ export const productRepository = {
   },
 
   async getProductById(id: string): Promise<Product> {
-    return apiClient.execute(`products/${id}`, () => {
+    return apiClient.execute(`products/${id}`, async () => {
       const match = id.match(/^prod-(\d+)$/);
       if (!match) {
         throw new AppError('UNKNOWN_FAILURE', `Invalid product ID: ${id}`);
@@ -110,6 +187,20 @@ export const productRepository = {
       if (index < 0 || index >= TOTAL_PRODUCTS) {
         throw new AppError('UNKNOWN_FAILURE', `Product with ID ${id} not found.`);
       }
+
+      if (isSupabaseConfigured) {
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .eq('id', id)
+          .single();
+
+        if (error || !data) {
+          throw new AppError('UNKNOWN_FAILURE', `Product with ID ${id} not found from Supabase.`, error);
+        }
+        return mapDbProduct(data);
+      }
+
       return getProductByIndex(index);
     });
   },

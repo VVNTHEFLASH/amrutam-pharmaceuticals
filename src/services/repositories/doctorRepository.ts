@@ -4,6 +4,7 @@ import { AppError } from '@/types/errors';
 
 import { apiClient } from '../api/apiClient';
 import { getDoctorByIndex, TOTAL_DOCTORS } from '../mockData';
+import { supabase, isSupabaseConfigured } from '../supabase';
 
 function buildMetadata(totalCount: number, page: number, pageSize: number): PaginationMetadata {
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
@@ -15,6 +16,19 @@ function buildMetadata(totalCount: number, page: number, pageSize: number): Pagi
     totalPages,
     hasNextPage: currentPage < totalPages,
     hasPreviousPage: currentPage > 1,
+  };
+}
+
+function mapDbDoctor(row: any): Doctor {
+  return {
+    id: row.id,
+    name: row.name,
+    specialty: row.specialty,
+    imageUrl: row.image_url,
+    rating: Number(row.rating),
+    experience: row.experience,
+    consultationFee: Number(row.consultation_fee),
+    availableDays: row.available_days,
   };
 }
 
@@ -30,9 +44,67 @@ export const doctorRepository = {
     ].filter(Boolean).sort().join('&');
     const cacheKey = `doctors?${parts}`;
 
-    return apiClient.execute(cacheKey, () => {
+    return apiClient.execute(cacheKey, async () => {
       const page = query.page || 1;
       const pageSize = query.pageSize || 10;
+
+      if (isSupabaseConfigured) {
+        let queryBuilder = supabase.from('doctors').select('*', { count: 'exact' });
+
+        if (query.specialty) {
+          queryBuilder = queryBuilder.eq('specialty', query.specialty);
+        }
+
+        if (query.availability) {
+          queryBuilder = queryBuilder.cs('available_days', [query.availability]);
+        }
+
+        if (query.search) {
+          const searchClean = query.search.trim();
+          queryBuilder = queryBuilder.or(`name.ilike.%${searchClean}%,specialty.ilike.%${searchClean}%`);
+        }
+
+        if (query.sort) {
+          switch (query.sort) {
+            case 'name_asc':
+              queryBuilder = queryBuilder.order('name', { ascending: true });
+              break;
+            case 'name_desc':
+              queryBuilder = queryBuilder.order('name', { ascending: false });
+              break;
+            case 'rating_desc':
+              queryBuilder = queryBuilder.order('rating', { ascending: false });
+              break;
+            case 'fee_asc':
+              queryBuilder = queryBuilder.order('consultation_fee', { ascending: true });
+              break;
+            case 'fee_desc':
+              queryBuilder = queryBuilder.order('consultation_fee', { ascending: false });
+              break;
+          }
+        }
+
+        // Always order by seed_index as stable secondary sorting to preserve index order
+        queryBuilder = queryBuilder.order('seed_index', { ascending: true });
+
+        const start = (page - 1) * pageSize;
+        const end = start + pageSize - 1;
+        queryBuilder = queryBuilder.range(start, end);
+
+        const { data, count, error } = await queryBuilder;
+        if (error || !data) {
+          throw new AppError('UNKNOWN_FAILURE', `Failed to fetch doctors from Supabase: ${error?.message || 'Empty response'}`, error);
+        }
+
+        const totalCount = count || 0;
+        const metadata = buildMetadata(totalCount, page, pageSize);
+        const items = data.map(mapDbDoctor);
+
+        return {
+          items,
+          metadata,
+        };
+      }
 
       const filtered: Doctor[] = [];
       for (let i = 0; i < TOTAL_DOCTORS; i++) {
@@ -92,7 +164,7 @@ export const doctorRepository = {
   },
 
   async getDoctorById(id: string): Promise<Doctor> {
-    return apiClient.execute(`doctors/${id}`, () => {
+    return apiClient.execute(`doctors/${id}`, async () => {
       const match = id.match(/^doc-(\d+)$/);
       if (!match) {
         throw new AppError('UNKNOWN_FAILURE', `Invalid doctor ID: ${id}`);
@@ -101,6 +173,20 @@ export const doctorRepository = {
       if (index < 0 || index >= TOTAL_DOCTORS) {
         throw new AppError('UNKNOWN_FAILURE', `Doctor with ID ${id} not found.`);
       }
+
+      if (isSupabaseConfigured) {
+        const { data, error } = await supabase
+          .from('doctors')
+          .select('*')
+          .eq('id', id)
+          .single();
+
+        if (error || !data) {
+          throw new AppError('UNKNOWN_FAILURE', `Doctor with ID ${id} not found from Supabase.`, error);
+        }
+        return mapDbDoctor(data);
+      }
+
       return getDoctorByIndex(index);
     });
   },
