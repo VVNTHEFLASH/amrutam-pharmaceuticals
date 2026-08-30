@@ -1,11 +1,14 @@
-import React from 'react';
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import React, { useState } from 'react';
+import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { CalendarDays } from 'lucide-react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import { TimeSlot } from '@/types/api';
 import { Booking, Doctor } from '@/types/domain';
+import { useTheme } from '@/hooks/use-theme';
 
 import { isSlotExpired, parseSlotDateTime } from '../utils/dateUtils';
 
@@ -36,6 +39,35 @@ export function DoctorDetail({
   bookingQueue,
   bookingMessage,
 }: DoctorDetailProps) {
+  const theme = useTheme();
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  const getPickerDate = () => {
+    if (!selectedDate) return new Date(2026, 7, 30);
+    const [y, m, d] = selectedDate.split('-').map(Number);
+    if (!y || !m || !d) return new Date(2026, 7, 30);
+    return new Date(y, m - 1, d);
+  };
+
+  const handleDateSelect = (event: any, date?: Date) => {
+    setShowDatePicker(false);
+    if (date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const formatted = `${year}-${month}-${day}`;
+      setSelectedDate(formatted);
+    }
+  };
+
+  const handleDateDismiss = () => {
+    setShowDatePicker(false);
+  };
+
+  const handleResetDate = () => {
+    setSelectedDate('2026-08-30');
+  };
+
   return (
     <View style={styles.container}>
       <Pressable style={styles.backButton} onPress={onBack}>
@@ -55,13 +87,73 @@ export function DoctorDetail({
       </ThemedView>
 
       <View style={styles.dateSelectorSection}>
-        <ThemedText type="smallBold">Select Date (YYYY-MM-DD):</ThemedText>
-        <TextInput
-          style={styles.dateInput}
-          value={selectedDate}
-          onChangeText={setSelectedDate}
-          placeholder="2026-08-30"
-        />
+        <ThemedText type="smallBold" style={{ color: theme.text }}>
+          Booking Date:
+        </ThemedText>
+        {Platform.OS === 'web' ? (
+          <input
+            type="date"
+            value={selectedDate}
+            min="2026-08-30"
+            onChange={(e) => {
+              const val = e.target.value;
+              if (val >= '2026-08-30') {
+                setSelectedDate(val);
+              } else {
+                setSelectedDate('2026-08-30');
+              }
+            }}
+            style={{
+              padding: 8,
+              borderRadius: 4,
+              border: `1px solid ${theme.backgroundSelected}`,
+              backgroundColor: theme.backgroundElement,
+              color: theme.text,
+              fontFamily: 'Poppins_500Medium',
+              fontSize: 14,
+              height: 38,
+              outline: 'none',
+            }}
+          />
+        ) : (
+          <Pressable
+            style={[
+              styles.dateBtn,
+              { backgroundColor: theme.backgroundElement, borderColor: theme.backgroundSelected },
+            ]}
+            onPress={() => setShowDatePicker(true)}
+            accessibilityLabel="Select booking date"
+          >
+            <CalendarDays size={16} color={theme.text} style={{ marginRight: 8 }} />
+            <ThemedText type="smallBold" themeColor={selectedDate ? 'text' : 'textSecondary'}>
+              {selectedDate ? selectedDate : 'Select Date'}
+            </ThemedText>
+          </Pressable>
+        )}
+
+        {selectedDate && selectedDate !== '2026-08-30' && (
+          <Pressable
+            style={[styles.resetBtn, { backgroundColor: '#FF4D4F' }]}
+            onPress={handleResetDate}
+            accessibilityLabel="Reset date"
+          >
+            <ThemedText type="smallBold" style={{ color: '#fff' }}>
+              Reset
+            </ThemedText>
+          </Pressable>
+        )}
+
+        {showDatePicker && Platform.OS !== 'web' && (
+          <DateTimePicker
+            value={getPickerDate()}
+            mode="date"
+            display="default"
+            minimumDate={new Date(2026, 7, 30)}
+            onValueChange={handleDateSelect}
+            onDismiss={handleDateDismiss}
+            onNeutralButtonPress={handleDateDismiss}
+          />
+        )}
       </View>
 
       <ThemedText type="smallBold" style={styles.slotsHeader}>
@@ -157,15 +249,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.two,
     marginBottom: Spacing.three,
+    flexWrap: 'wrap',
   },
-  dateInput: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    padding: Spacing.one,
+  dateBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
     borderRadius: Spacing.one,
-    width: 140,
-    backgroundColor: '#fff',
-    color: '#000',
+    borderWidth: 1,
+  },
+  resetBtn: {
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+    borderRadius: Spacing.one,
+    marginLeft: 8,
   },
   slotsHeader: { marginBottom: Spacing.two },
   slotsGrid: { gap: Spacing.two, paddingBottom: 96 },

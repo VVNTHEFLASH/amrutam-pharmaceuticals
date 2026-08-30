@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { Alert, FlatList, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import React, { useState, useMemo, useEffect } from 'react';
+import { FlatList, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -7,11 +7,14 @@ import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { CartView } from '@/features/shop/components/CartView';
 import { ProductDetail } from '@/features/shop/components/ProductDetail';
+import { WishlistView } from '@/features/shop/components/WishlistView';
 import { useTheme } from '@/hooks/use-theme';
 import { useShop } from '@/features/shop/hooks/useShop';
 import { useClientStore } from '@/store/clientStore';
-import { Search, ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { useToastStore } from '@/store/toastStore';
+import { Search, ChevronLeft, ChevronRight, Heart } from 'lucide-react-native';
 import { HorizontalFilterRow } from '@/components/horizontal-filter-row';
+import { productRepository } from '@/services/repositories/productRepository';
 import { Product } from '@/types/domain';
 
 const CATS = ['Ayurvedic Medicine', 'Homeopathy', 'Wellness & Nutrition', 'Personal Care', 'Baby Care', 'Devices'];
@@ -59,9 +62,40 @@ export default function ShopScreen() {
   const removeFromCart = useClientStore((s) => s.removeFromCart);
   const clearCart = useClientStore((s) => s.clearCart);
 
+  // Wishlist bindings
+  const wishlist = useClientStore((s) => s.wishlist);
+  const toggleWishlist = useClientStore((s) => s.toggleWishlist);
+  const showToast = useToastStore((s) => s.showToast);
+
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [viewingCart, setViewingCart] = useState(false);
+  const [viewingWishlist, setViewingWishlist] = useState(false);
+  const [wishlistProducts, setWishlistProducts] = useState<Product[]>([]);
   const [localSearch, setLocalSearch] = useState(filters.search);
+
+  useEffect(() => {
+    let active = true;
+    const fetchWishlist = async () => {
+      try {
+        const resolved = await Promise.all(
+          wishlist.map((id) => productRepository.getProductById(id))
+        );
+        if (active) {
+          setWishlistProducts(resolved);
+        }
+      } catch (err) {
+        console.error('Error fetching wishlist products:', err);
+      }
+    };
+    if (wishlist.length > 0) {
+      fetchWishlist();
+    } else {
+      setWishlistProducts([]);
+    }
+    return () => {
+      active = false;
+    };
+  }, [wishlist]);
 
   // Memoize cart totals for performance and avoiding unnecessary redraw calculations
   const { totalQty, totalVal } = useMemo(() => {
@@ -75,12 +109,22 @@ export default function ShopScreen() {
     );
   }, [cart]);
 
+  const handleToggleWishlist = (productId: string, productName: string) => {
+    toggleWishlist(productId);
+    const exists = wishlist.includes(productId);
+    if (exists) {
+      showToast('info', `${productName} removed from wishlist.`);
+    } else {
+      showToast('success', `${productName} added to wishlist!`);
+    }
+  };
+
   const handleAddToCart = (product: Product) => {
     try {
       addToCart(product, 1);
-      Platform.OS === 'web' ? alert('Added to cart!') : Alert.alert('Success', 'Added to cart!');
+      showToast('success', `${product.name} added to cart!`);
     } catch (err: any) {
-      Platform.OS === 'web' ? alert(err.message) : Alert.alert('Error', err.message);
+      showToast('error', err.message);
     }
   };
 
@@ -110,6 +154,31 @@ export default function ShopScreen() {
     );
   }
 
+  if (viewingWishlist) {
+    return (
+      <ThemedView style={s.container}>
+        <SafeAreaView style={s.safe}>
+          <WishlistView
+            wishlistProducts={wishlistProducts}
+            onBack={() => setViewingWishlist(false)}
+            onRemove={(id) => {
+              const prod = wishlistProducts.find((p) => p.id === id);
+              if (prod) {
+                handleToggleWishlist(id, prod.name);
+              } else {
+                toggleWishlist(id);
+              }
+            }}
+            onSelectProduct={(product) => {
+              setSelectedProduct(product);
+              setViewingWishlist(false);
+            }}
+          />
+        </SafeAreaView>
+      </ThemedView>
+    );
+  }
+
   if (selectedProduct) {
     return (
       <ThemedView style={s.container}>
@@ -121,6 +190,8 @@ export default function ShopScreen() {
             onAdd={() => handleAddToCart(selectedProduct)}
             onUpdateQty={(qty) => handleUpdateQty(selectedProduct.id, qty)}
             onRemove={() => removeFromCart(selectedProduct.id)}
+            isWishlisted={wishlist.includes(selectedProduct.id)}
+            onToggleWishlist={() => handleToggleWishlist(selectedProduct.id, selectedProduct.name)}
           />
         </SafeAreaView>
       </ThemedView>
@@ -130,14 +201,27 @@ export default function ShopScreen() {
   return (
     <ThemedView style={s.container}>
       <SafeAreaView style={s.safe}>
-        {/* Top Bar with Cart Button */}
+        {/* Top Bar with Wishlist and Cart Buttons */}
         <View style={s.topBar}>
           <ThemedText type="subtitle">Health Shop</ThemedText>
-          <Pressable style={s.cartIndicator} onPress={() => setViewingCart(true)}>
-            <ThemedText type="smallBold" style={{ color: '#fff' }}>
-              🛒 Cart ({totalQty}) | ₹{totalVal}
-            </ThemedText>
-          </Pressable>
+          <View style={{ flexDirection: 'row', gap: Spacing.two, alignItems: 'center' }}>
+            <Pressable
+              style={[s.wishlistIndicator, { backgroundColor: theme.backgroundElement, borderColor: theme.backgroundSelected }]}
+              onPress={() => setViewingWishlist(true)}
+              accessibilityLabel="View Wishlist"
+              accessibilityRole="button"
+            >
+              <Heart size={18} color="#FF4D4F" fill={wishlist.length > 0 ? "#FF4D4F" : "transparent"} style={{ marginRight: 4 }} />
+              <ThemedText type="smallBold" style={{ color: theme.text }}>
+                ({wishlist.length})
+              </ThemedText>
+            </Pressable>
+            <Pressable style={s.cartIndicator} onPress={() => setViewingCart(true)}>
+              <ThemedText type="smallBold" style={{ color: '#fff' }}>
+                🛒 Cart ({totalQty}) | ₹{totalVal}
+              </ThemedText>
+            </Pressable>
+          </View>
         </View>
 
         {/* Search Input */}
@@ -250,28 +334,45 @@ export default function ShopScreen() {
             data={products}
             keyExtractor={(item) => item.id}
             contentContainerStyle={{ paddingBottom: 96 }}
-            renderItem={({ item }) => (
-              <Pressable onPress={() => setSelectedProduct(item)}>
-                <ThemedView type="backgroundElement" style={s.card}>
-                  <View style={s.row}>
-                    <View style={{ flex: 1 }}>
-                      <ThemedText type="default" style={{ fontWeight: 'bold' }}>{item.name}</ThemedText>
-                      <ThemedText type="small" themeColor="textSecondary">
-                        {item.category} • ★{item.rating}
-                      </ThemedText>
-                      <ThemedText type="default" style={{ color: '#2ecc71', marginTop: 4, fontWeight: 'bold' }}>
-                        ₹ {item.price}
-                      </ThemedText>
+            renderItem={({ item }) => {
+              const isWish = wishlist.includes(item.id);
+              return (
+                <Pressable onPress={() => setSelectedProduct(item)}>
+                  <ThemedView type="backgroundElement" style={s.card}>
+                    <View style={s.row}>
+                      <View style={{ flex: 1 }}>
+                        <ThemedText type="default" style={{ fontWeight: 'bold' }}>{item.name}</ThemedText>
+                        <ThemedText type="small" themeColor="textSecondary">
+                          {item.category} • ★{item.rating}
+                        </ThemedText>
+                        <ThemedText type="default" style={{ color: '#2ecc71', marginTop: 4, fontWeight: 'bold' }}>
+                          ₹ {item.price}
+                        </ThemedText>
+                      </View>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.two }}>
+                        <Pressable
+                          onPress={() => handleToggleWishlist(item.id, item.name)}
+                          style={{ padding: Spacing.two }}
+                          accessibilityLabel={isWish ? "Remove from wishlist" : "Add to wishlist"}
+                          accessibilityRole="button"
+                        >
+                          <Heart
+                            size={20}
+                            color={isWish ? '#FF4D4F' : theme.textSecondary}
+                            fill={isWish ? '#FF4D4F' : 'transparent'}
+                          />
+                        </Pressable>
+                        <Pressable style={s.addCartBtn} onPress={() => handleAddToCart(item)}>
+                          <ThemedText type="smallBold" style={{ color: '#fff' }}>
+                            + Add
+                          </ThemedText>
+                        </Pressable>
+                      </View>
                     </View>
-                    <Pressable style={s.addCartBtn} onPress={() => handleAddToCart(item)}>
-                      <ThemedText type="smallBold" style={{ color: '#fff' }}>
-                        + Add
-                      </ThemedText>
-                    </Pressable>
-                  </View>
-                </ThemedView>
-              </Pressable>
-            )}
+                  </ThemedView>
+                </Pressable>
+              );
+            }}
           />
         )}
 
@@ -318,6 +419,14 @@ const s = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: Spacing.three, justifyContent: 'center', flexDirection: 'row' },
   safe: { flex: 1, maxWidth: MaxContentWidth, paddingBottom: 0 },
   topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 12 },
+  wishlistIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
   cartIndicator: { backgroundColor: '#2ecc71', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6 },
   header: { flexDirection: 'row', gap: 8, marginBottom: 12 },
   input: {

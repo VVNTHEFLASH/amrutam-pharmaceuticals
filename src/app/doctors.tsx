@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { Alert, FlatList, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { useState } from 'react';
+import { FlatList, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { HorizontalFilterRow } from '@/components/horizontal-filter-row';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
@@ -9,9 +10,9 @@ import { DoctorDetail } from '@/features/consultation/components/DoctorDetail';
 import { useConsultation } from '@/features/consultation/hooks/useConsultation';
 import { useTheme } from '@/hooks/use-theme';
 import { useClientStore } from '@/store/clientStore';
-import { Search, ChevronLeft, ChevronRight } from 'lucide-react-native';
-import { HorizontalFilterRow } from '@/components/horizontal-filter-row';
+import { useToastStore } from '@/store/toastStore';
 import { Doctor } from '@/types/domain';
+import { ChevronLeft, ChevronRight, Search } from 'lucide-react-native';
 
 const SP = ['General Physician', 'Ayurvedic Specialist', 'Homeopathic Specialist', 'Dermatologist'];
 const DY = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -39,6 +40,7 @@ export default function DoctorsScreen() {
   } = useConsultation();
   const queue = useClientStore((s) => s.bookingQueue);
   const theme = useTheme();
+  const showToast = useToastStore((s) => s.showToast);
   const [localSearch, setLocalSearch] = useState(search);
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -46,10 +48,10 @@ export default function DoctorsScreen() {
     setMsg(null);
     try {
       await bookSlot(doctor, selectedDate, slotTime);
-      Platform.OS === 'web' ? alert('Booked!') : Alert.alert('Success', 'Booked!');
+      showToast('success', `Appointment with ${doctor.name} booked successfully!`);
     } catch (err: any) {
       setMsg(err.message);
-      Platform.OS === 'web' ? alert(err.message) : Alert.alert('Error', err.message);
+      showToast('error', err.message);
     }
   };
 

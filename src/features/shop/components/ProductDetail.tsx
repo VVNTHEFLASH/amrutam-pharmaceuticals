@@ -1,10 +1,12 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Heart } from 'lucide-react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import { Product } from '@/types/domain';
+import { useTheme } from '@/hooks/use-theme';
 
 interface ProductDetailProps {
   product: Product;
@@ -13,6 +15,8 @@ interface ProductDetailProps {
   onAdd: () => void;
   onUpdateQty: (qty: number) => void;
   onRemove: () => void;
+  isWishlisted: boolean;
+  onToggleWishlist: () => void;
 }
 
 export function ProductDetail({
@@ -22,7 +26,11 @@ export function ProductDetail({
   onAdd,
   onUpdateQty,
   onRemove,
+  isWishlisted,
+  onToggleWishlist,
 }: ProductDetailProps) {
+  const theme = useTheme();
+
   return (
     <View style={s.container}>
       <Pressable style={s.backButton} onPress={onBack}>
@@ -31,9 +39,23 @@ export function ProductDetail({
 
       <ScrollView contentContainerStyle={s.scroll}>
         <ThemedView type="backgroundElement" style={s.card}>
-          <ThemedText type="subtitle" style={s.name}>
-            {product.name}
-          </ThemedText>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.one }}>
+            <ThemedText type="subtitle" style={[s.name, { flex: 1, marginRight: Spacing.two }]}>
+              {product.name}
+            </ThemedText>
+            <Pressable
+              onPress={onToggleWishlist}
+              style={{ padding: Spacing.one }}
+              accessibilityLabel={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+              accessibilityRole="button"
+            >
+              <Heart
+                size={24}
+                color={isWishlisted ? '#FF4D4F' : theme.textSecondary}
+                fill={isWishlisted ? '#FF4D4F' : 'transparent'}
+              />
+            </Pressable>
+          </View>
           <ThemedText type="default" themeColor="textSecondary" style={s.category}>
             Category: {product.category}
           </ThemedText>
@@ -47,7 +69,7 @@ export function ProductDetail({
             Stock left: {product.stock} items
           </ThemedText>
 
-          <View style={s.divider} />
+          <View style={[s.divider, { backgroundColor: theme.backgroundSelected }]} />
 
           <ThemedText type="default" style={s.descLabel}>
             Description
@@ -59,21 +81,33 @@ export function ProductDetail({
           <View style={s.actions}>
             {cartQuantity > 0 ? (
               <View style={s.qtyWrapper}>
-                <ThemedText type="smallBold" style={s.cartLabel}>
+                <ThemedText type="smallBold" style={[s.cartLabel, { color: theme.textSecondary }]}>
                   In Cart:
                 </ThemedText>
-                <View style={s.stepper}>
-                  <Pressable onPress={() => onUpdateQty(cartQuantity - 1)} style={s.stepBtn}>
-                    <ThemedText type="smallBold">-</ThemedText>
+                <View style={[s.stepper, { borderColor: theme.backgroundSelected }]}>
+                  <Pressable
+                    onPress={() => onUpdateQty(cartQuantity - 1)}
+                    style={[s.stepBtn, { backgroundColor: theme.backgroundElement }]}
+                    accessibilityLabel="Decrease quantity"
+                    accessibilityRole="button"
+                  >
+                    <ThemedText type="smallBold" style={{ color: theme.text }}>-</ThemedText>
                   </Pressable>
-                  <ThemedText type="default" style={[s.qty, { fontWeight: 'bold' }]}>
+                  <ThemedText type="default" style={[s.qty, { color: theme.text, fontWeight: 'bold' }]}>
                     {cartQuantity}
                   </ThemedText>
                   <Pressable
                     disabled={cartQuantity >= product.stock}
                     onPress={() => onUpdateQty(cartQuantity + 1)}
-                    style={[s.stepBtn, cartQuantity >= product.stock && { opacity: 0.5 }]}>
-                    <ThemedText type="smallBold">+</ThemedText>
+                    style={[
+                      s.stepBtn,
+                      { backgroundColor: theme.backgroundElement },
+                      cartQuantity >= product.stock && { opacity: 0.5 }
+                    ]}
+                    accessibilityLabel="Increase quantity"
+                    accessibilityRole="button"
+                  >
+                    <ThemedText type="smallBold" style={{ color: theme.text }}>+</ThemedText>
                   </Pressable>
                 </View>
                 <Pressable onPress={onRemove} style={s.removeBtn}>
@@ -109,15 +143,15 @@ const s = StyleSheet.create({
   rating: { fontSize: 14, color: '#f1c40f', marginBottom: Spacing.two },
   price: { fontWeight: 'bold', color: '#2ecc71', marginBottom: Spacing.one },
   stock: { marginBottom: Spacing.four },
-  divider: { height: 1, backgroundColor: '#eee', marginVertical: Spacing.three },
+  divider: { height: 1, marginVertical: Spacing.three },
   descLabel: { fontWeight: '600', marginBottom: Spacing.one },
-  desc: { lineHeight: 18, color: '#555', marginBottom: Spacing.four },
+  desc: { lineHeight: 18, marginBottom: Spacing.four },
   actions: { marginTop: Spacing.two },
   addBtn: { backgroundColor: '#208AEF', paddingVertical: 12, borderRadius: 8, alignItems: 'center' },
   qtyWrapper: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 },
-  cartLabel: { color: '#666' },
-  stepper: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#ccc', borderRadius: 4 },
-  stepBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f5f5' },
-  qty: { paddingHorizontal: 16, fontSize: 16, color: '#000' },
+  cartLabel: { },
+  stepper: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 4 },
+  stepBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
+  qty: { paddingHorizontal: 16, fontSize: 16 },
   removeBtn: { paddingVertical: Spacing.one, paddingHorizontal: Spacing.two },
 });

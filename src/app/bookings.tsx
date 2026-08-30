@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert, FlatList, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { FlatList, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -7,29 +7,22 @@ import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useConsultation } from '@/features/consultation/hooks/useConsultation';
 import { useClientStore } from '@/store/clientStore';
+import { useToastStore } from '@/store/toastStore';
 
 const NOW = new Date(2026, 7, 30, 11, 0); // Sunday, Aug 30, 2026 at 11:00 AM
 
 export default function BookingsScreen() {
   const bookingQueue = useClientStore((s) => s.bookingQueue);
   const { cancelBooking } = useConsultation();
+  const showToast = useToastStore((s) => s.showToast);
 
   const handleCancel = (bookingId: string) => {
     try {
       cancelBooking(bookingId);
-      const msg = 'Consultation cancelled successfully.';
-      if (Platform.OS === 'web') {
-        alert(msg);
-      } else {
-        Alert.alert('Cancelled', msg);
-      }
+      showToast('success', 'Consultation cancelled successfully.');
     } catch (e: any) {
       const errMsg = e?.message || 'Failed to cancel.';
-      if (Platform.OS === 'web') {
-        alert(errMsg);
-      } else {
-        Alert.alert('Error', errMsg);
-      }
+      showToast('error', errMsg);
     }
   };
 
