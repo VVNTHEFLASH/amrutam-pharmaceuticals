@@ -29,6 +29,8 @@ export interface HealthRecord {
   treatment: string;
   prescription: string;
   attachmentUrl?: string;
+  type: 'Prescription' | 'Diagnostic Report' | 'Lab Result' | 'Immunization';
+  tags: string[];
 }
 
 export interface Booking {
@@ -47,3 +49,4 @@ export interface CartItem {
   product: Product;
   quantity: number;
 }
+

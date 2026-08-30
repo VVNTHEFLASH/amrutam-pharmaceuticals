@@ -76,6 +76,11 @@ export function getProductByIndex(i: number): Product {
   };
 }
 
+const RECORD_TYPES: ('Prescription' | 'Diagnostic Report' | 'Lab Result' | 'Immunization')[] = [
+  'Prescription', 'Diagnostic Report', 'Lab Result', 'Immunization'
+];
+const TAG_POOL = ['Ayurveda', 'Critical', 'Routine', 'Past Illness', 'Follow-up', 'Reference'];
+
 export function getHealthRecordByIndex(i: number): HealthRecord {
   const seed = i + 50000;
   const r1 = seededRandom(seed + 1);
@@ -90,6 +95,15 @@ export function getHealthRecordByIndex(i: number): HealthRecord {
   const dateObj = new Date(2026, 7, 30);
   dateObj.setDate(dateObj.getDate() - Math.floor(r2 * 365));
 
+  const type = RECORD_TYPES[Math.floor(r4 * RECORD_TYPES.length)];
+  const tags: string[] = [];
+  if (r1 > 0.3) {
+    tags.push(TAG_POOL[Math.floor(r2 * TAG_POOL.length)]);
+  }
+  if (r2 > 0.6) {
+    tags.push(TAG_POOL[Math.floor(r3 * TAG_POOL.length)]);
+  }
+
   return {
     id: `rec-${i + 1}`,
     patientName,
@@ -99,6 +113,8 @@ export function getHealthRecordByIndex(i: number): HealthRecord {
     treatment: TREATMENTS[di],
     prescription: PRESCRIPTIONS[di],
     attachmentUrl: r3 > 0.55 ? `https://example.com/attachments/rec-${i + 1}.pdf` : undefined,
+    type,
+    tags,
   };
 }
 
