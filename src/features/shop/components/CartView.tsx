@@ -54,6 +54,7 @@ export function CartView({ cart, onBack, onUpdateQty, onRemove, onClear }: CartV
               ]}
               accessibilityLabel="Decrease quantity"
               accessibilityRole="button"
+              accessibilityState={{ disabled: isDecrementDisabled }}
             >
               <Minus size={16} color={theme.text} />
             </Pressable>
@@ -70,6 +71,7 @@ export function CartView({ cart, onBack, onUpdateQty, onRemove, onClear }: CartV
               ]}
               accessibilityLabel="Increase quantity"
               accessibilityRole="button"
+              accessibilityState={{ disabled: isIncrementDisabled }}
             >
               <Plus size={16} color={theme.text} />
             </Pressable>

@@ -58,6 +58,21 @@ export function ToastContainer() {
                 {toast.description}
               </ThemedText>
             </View>
+            {toast.action && (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={toast.action.label}
+                onPress={() => {
+                  toast.action?.onPress();
+                  dismissToast(toast.id);
+                }}
+                style={styles.actionBtn}
+              >
+                <ThemedText type="smallBold" style={styles.actionText}>
+                  {toast.action.label}
+                </ThemedText>
+              </Pressable>
+            )}
             <Pressable
               onPress={() => dismissToast(toast.id)}
               style={styles.closeBtn}
@@ -111,5 +126,15 @@ const styles = StyleSheet.create({
   },
   closeBtn: {
     padding: Spacing.one,
+  },
+  actionBtn: {
+    backgroundColor: '#208AEF',
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.one,
+    borderRadius: 6,
+    marginRight: Spacing.two,
+  },
+  actionText: {
+    color: '#FFFFFF',
   },
 });

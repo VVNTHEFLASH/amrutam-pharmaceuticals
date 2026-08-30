@@ -94,7 +94,7 @@ describe('DoctorDetail Expiry Rendering', () => {
     });
 
     // Helper to recursively find slot rows, Pressables, and labels
-    function findSlotButtonsAndLabels(node: any): { time: string; disabled: boolean; label: string }[] {
+    function findSlotButtonsAndLabels(node: any): { time: string; disabled: boolean; label: string; role: string; aLabel: string; aState: any }[] {
       if (!node) return [];
       let list: any[] = [];
 
@@ -109,7 +109,10 @@ describe('DoctorDetail Expiry Rendering', () => {
           const disabled = pressableChild.props.disabled;
           const textNode = React.Children.toArray(pressableChild.props.children)[0] as any;
           const label = textNode ? textNode.props.children : '';
-          list.push({ time, disabled, label });
+          const role = pressableChild.props.accessibilityRole;
+          const aLabel = pressableChild.props.accessibilityLabel;
+          const aState = pressableChild.props.accessibilityState;
+          list.push({ time, disabled, label, role, aLabel, aState });
         }
       }
 
@@ -129,11 +132,17 @@ describe('DoctorDetail Expiry Rendering', () => {
     expect(expiredSlot).toBeDefined();
     expect(expiredSlot!.label).toBe('Expired');
     expect(expiredSlot!.disabled).toBe(true);
+    expect(expiredSlot!.role).toBe('button');
+    expect(expiredSlot!.aLabel).toBe('10:00 AM slot on 2026-08-30 is expired');
+    expect(expiredSlot!.aState).toEqual({ disabled: true });
 
     // Verify 12:00 PM slot is Bookable
     const futureSlot = testSlots.find(s => s.time === '12:00 PM');
     expect(futureSlot).toBeDefined();
     expect(futureSlot!.label).toBe('Book');
     expect(futureSlot!.disabled).toBe(false);
+    expect(futureSlot!.role).toBe('button');
+    expect(futureSlot!.aLabel).toBe('12:00 PM slot on 2026-08-30 is available');
+    expect(futureSlot!.aState).toEqual({ disabled: false });
   });
 });

@@ -16,6 +16,7 @@ import { Search, ChevronLeft, ChevronRight, Heart } from 'lucide-react-native';
 import { HorizontalFilterRow } from '@/components/horizontal-filter-row';
 import { productRepository } from '@/services/repositories/productRepository';
 import { Product } from '@/types/domain';
+import { AppError } from '@/types/errors';
 
 const CATS = ['Ayurvedic Medicine', 'Homeopathy', 'Wellness & Nutrition', 'Personal Care', 'Baby Care', 'Devices'];
 
@@ -124,12 +125,44 @@ export default function ShopScreen() {
       addToCart(product, 1);
       showToast('success', `${product.name} added to cart!`);
     } catch (err: any) {
+      if (err instanceof AppError && err.code === 'UNAUTHORIZED') {
+        return;
+      }
       showToast('error', err.message);
     }
   };
 
   const handleUpdateQty = (productId: string, qty: number) => {
-    updateCartQuantity(productId, qty);
+    try {
+      updateCartQuantity(productId, qty);
+    } catch (err: any) {
+      if (err instanceof AppError && err.code === 'UNAUTHORIZED') {
+        return;
+      }
+      showToast('error', err.message);
+    }
+  };
+
+  const handleRemoveFromCart = (productId: string) => {
+    try {
+      removeFromCart(productId);
+    } catch (err: any) {
+      if (err instanceof AppError && err.code === 'UNAUTHORIZED') {
+        return;
+      }
+      showToast('error', err.message);
+    }
+  };
+
+  const handleClearCart = () => {
+    try {
+      clearCart();
+    } catch (err: any) {
+      if (err instanceof AppError && err.code === 'UNAUTHORIZED') {
+        return;
+      }
+      showToast('error', err.message);
+    }
   };
 
   const selectedProductQuantity = useMemo(() => {
@@ -146,8 +179,8 @@ export default function ShopScreen() {
             cart={cart}
             onBack={() => setViewingCart(false)}
             onUpdateQty={handleUpdateQty}
-            onRemove={removeFromCart}
-            onClear={clearCart}
+            onRemove={handleRemoveFromCart}
+            onClear={handleClearCart}
           />
         </SafeAreaView>
       </ThemedView>
@@ -189,7 +222,7 @@ export default function ShopScreen() {
             cartQuantity={selectedProductQuantity}
             onAdd={() => handleAddToCart(selectedProduct)}
             onUpdateQty={(qty) => handleUpdateQty(selectedProduct.id, qty)}
-            onRemove={() => removeFromCart(selectedProduct.id)}
+            onRemove={() => handleRemoveFromCart(selectedProduct.id)}
             isWishlisted={wishlist.includes(selectedProduct.id)}
             onToggleWishlist={() => handleToggleWishlist(selectedProduct.id, selectedProduct.name)}
           />
@@ -384,6 +417,7 @@ export default function ShopScreen() {
               onPress={() => updateFilters({ page: page - 1 })}
               accessibilityLabel="Previous page"
               accessibilityRole="button"
+              accessibilityState={{ disabled: page === 1 }}
               style={[
                 s.pageBtn,
                 { backgroundColor: theme.backgroundElement, borderColor: theme.backgroundSelected },
@@ -401,6 +435,7 @@ export default function ShopScreen() {
               onPress={() => updateFilters({ page: page + 1 })}
               accessibilityLabel="Next page"
               accessibilityRole="button"
+              accessibilityState={{ disabled: page === totalPages }}
               style={[
                 s.pageBtn,
                 { backgroundColor: theme.backgroundElement, borderColor: theme.backgroundSelected },

@@ -107,6 +107,7 @@ export function ConnectionBanner() {
           <TouchableOpacity
             accessibilityRole="button"
             accessibilityLabel="Sync Now"
+            accessibilityState={{ disabled: isTriggering || syncStatus === 'syncing' }}
             disabled={isTriggering || syncStatus === 'syncing'}
             onPress={handleManualSync}
             style={[styles.btn, { backgroundColor: theme.backgroundSelected, opacity: isTriggering || syncStatus === 'syncing' ? 0.5 : 1 }]}

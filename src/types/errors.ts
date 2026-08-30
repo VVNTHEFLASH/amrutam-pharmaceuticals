@@ -4,6 +4,7 @@ export type AppErrorCode =
   | 'MALFORMED_RESPONSE'
   | 'SESSION_EXPIRATION'
   | 'BOOKING_CONFLICT'
+  | 'UNAUTHORIZED'
   | 'UNKNOWN_FAILURE';
 
 export class AppError extends Error {

@@ -94,6 +94,17 @@ export function useConsultation() {
 
   const bookSlot = useCallback(
     async (doctor: Doctor, dateStr: string, slotTime: string) => {
+      if (!user) {
+        const { useToastStore, routerRegistry } = require('@/store/toastStore');
+        useToastStore.getState().showToast('error', 'Login to book', undefined, {
+          label: 'Login',
+          onPress: () => {
+            routerRegistry.push('/profile');
+          },
+        });
+        throw new AppError('UNAUTHORIZED', 'Login to book');
+      }
+
       const list = [
         '09:00 AM',
         '10:00 AM',

@@ -31,6 +31,7 @@ export async function runTests() {
   setCustomNowFn(() => new Date(2026, 7, 30, 10, 0));
 
   // Reset store parameters
+  useClientStore.setState({ userId: 'verify-offline-sync-user' });
   useClientStore.getState().clearCart();
   useClientStore.getState().removeSyncedBookings();
   useClientStore.getState().bookingQueue.forEach((b) => {

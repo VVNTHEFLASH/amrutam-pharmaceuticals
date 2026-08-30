@@ -48,6 +48,7 @@ export function ProductDetail({
               style={{ padding: Spacing.one }}
               accessibilityLabel={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
               accessibilityRole="button"
+              accessibilityState={{ selected: isWishlisted }}
             >
               <Heart
                 size={24}
@@ -90,6 +91,7 @@ export function ProductDetail({
                     style={[s.stepBtn, { backgroundColor: theme.backgroundElement }]}
                     accessibilityLabel="Decrease quantity"
                     accessibilityRole="button"
+                    accessibilityState={{ disabled: cartQuantity <= 1 }}
                   >
                     <ThemedText type="smallBold" style={{ color: theme.text }}>-</ThemedText>
                   </Pressable>
@@ -106,6 +108,7 @@ export function ProductDetail({
                     ]}
                     accessibilityLabel="Increase quantity"
                     accessibilityRole="button"
+                    accessibilityState={{ disabled: cartQuantity >= product.stock }}
                   >
                     <ThemedText type="smallBold" style={{ color: theme.text }}>+</ThemedText>
                   </Pressable>
@@ -120,6 +123,9 @@ export function ProductDetail({
               <Pressable
                 disabled={product.stock <= 0}
                 onPress={onAdd}
+                accessibilityRole="button"
+                accessibilityLabel="Add product to cart"
+                accessibilityState={{ disabled: product.stock <= 0 }}
                 style={[s.addBtn, product.stock <= 0 && { backgroundColor: '#ccc' }]}>
                 <ThemedText type="smallBold" style={{ color: '#fff' }}>
                   {product.stock <= 0 ? 'Out of Stock' : 'Add to Cart'}

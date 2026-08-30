@@ -11,6 +11,7 @@ describe('bookingSyncService Queue synchronization system', () => {
     const AsyncStorage = require('@react-native-async-storage/async-storage');
     await AsyncStorage.clear();
     useClientStore.setState({
+      userId: 'user-123',
       cart: [],
       wishlist: [],
       bookingQueue: [],

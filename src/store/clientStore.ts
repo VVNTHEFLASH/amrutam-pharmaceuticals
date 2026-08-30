@@ -7,8 +7,10 @@ import { bookingSyncService } from '@/services/bookingSyncService';
 import { connectivityService } from '@/services/connectivity';
 import { supabase, isSupabaseConfigured } from '@/services/supabase';
 import { Booking, CartItem, Product } from '@/types/domain';
+import { AppError } from '@/types/errors';
 
 export interface ClientState {
+  userId: string | null;
   cart: CartItem[];
   wishlist: string[]; // Array of product IDs
   bookingQueue: Booking[];
@@ -93,8 +95,9 @@ const queueCartMutation = (type: 'ADD' | 'REMOVE' | 'UPDATE' | 'CLEAR', productI
 
 export const useClientStore = create<ClientStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       // Initial States
+      userId: null,
       cart: [],
       wishlist: [],
       bookingQueue: [],
@@ -104,8 +107,18 @@ export const useClientStore = create<ClientStore>()(
       cartQueue: [],
 
       // Cart Actions
-      addToCart: (product, quantity = 1) =>
-        set((state) => {
+      addToCart: (product, quantity = 1) => {
+        if (!get().userId) {
+          const { useToastStore, routerRegistry } = require('@/store/toastStore');
+          useToastStore.getState().showToast('error', 'Login to add to cart', undefined, {
+            label: 'Login',
+            onPress: () => {
+              routerRegistry.push('/profile');
+            },
+          });
+          throw new AppError('UNAUTHORIZED', 'Login to add to cart');
+        }
+        return set((state) => {
           const existingItemIndex = state.cart.findIndex((item) => item.productId === product.id);
           if (existingItemIndex > -1) {
             const finalQty = state.cart[existingItemIndex].quantity + quantity;
@@ -121,10 +134,21 @@ export const useClientStore = create<ClientStore>()(
           return {
             cart: [...state.cart, { productId: product.id, product, quantity }],
           };
-        }),
+        });
+      },
 
-      updateCartQuantity: (productId, quantity) =>
-        set((state) => {
+      updateCartQuantity: (productId, quantity) => {
+        if (!get().userId) {
+          const { useToastStore, routerRegistry } = require('@/store/toastStore');
+          useToastStore.getState().showToast('error', 'Login to add to cart', undefined, {
+            label: 'Login',
+            onPress: () => {
+              routerRegistry.push('/profile');
+            },
+          });
+          throw new AppError('UNAUTHORIZED', 'Login to add to cart');
+        }
+        return set((state) => {
           if (quantity <= 0) {
             queueCartMutation('REMOVE', productId);
             return {
@@ -137,21 +161,44 @@ export const useClientStore = create<ClientStore>()(
               item.productId === productId ? { ...item, quantity } : item
             ),
           };
-        }),
+        });
+      },
 
-      removeFromCart: (productId) =>
-        set((state) => {
+      removeFromCart: (productId) => {
+        if (!get().userId) {
+          const { useToastStore, routerRegistry } = require('@/store/toastStore');
+          useToastStore.getState().showToast('error', 'Login to add to cart', undefined, {
+            label: 'Login',
+            onPress: () => {
+              routerRegistry.push('/profile');
+            },
+          });
+          throw new AppError('UNAUTHORIZED', 'Login to add to cart');
+        }
+        return set((state) => {
           queueCartMutation('REMOVE', productId);
           return {
             cart: state.cart.filter((item) => item.productId !== productId),
           };
-        }),
+        });
+      },
 
-      clearCart: () =>
-        set((state) => {
+      clearCart: () => {
+        if (!get().userId) {
+          const { useToastStore, routerRegistry } = require('@/store/toastStore');
+          useToastStore.getState().showToast('error', 'Login to add to cart', undefined, {
+            label: 'Login',
+            onPress: () => {
+              routerRegistry.push('/profile');
+            },
+          });
+          throw new AppError('UNAUTHORIZED', 'Login to add to cart');
+        }
+        return set((state) => {
           queueCartMutation('CLEAR');
           return { cart: [] };
-        }),
+        });
+      },
 
       // Wishlist Actions
       addToWishlist: (productId) =>

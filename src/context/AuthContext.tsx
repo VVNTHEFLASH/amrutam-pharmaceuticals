@@ -53,6 +53,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(initialSession);
         setUser(initialSession.user);
         userRef.current = initialSession.user;
+        try {
+          const useClientStore = require('@/store/clientStore').useClientStore;
+          useClientStore.setState({ userId: initialSession.user.id });
+        } catch (storeErr) {
+          console.error('Error setting initial userId in store:', storeErr);
+        }
         fetchAndSetProfile(initialSession.user.id).then(async () => {
           try {
             const { reconciliationService } = require('@/services/reconciliationService');
@@ -91,21 +97,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (newSession?.user) {
         setIsLoading(true);
 
+        const useClientStore = require('@/store/clientStore').useClientStore;
         if (previousUserId && previousUserId !== newUserId) {
           console.log(`[AuthContext] User changed from ${previousUserId} to ${newUserId}. Clearing store on session switch.`);
           try {
-            const useClientStore = require('@/store/clientStore').useClientStore;
             useClientStore.setState({
               cart: [],
               wishlist: [],
               bookingQueue: [],
               wishlistQueue: [],
               cartQueue: [],
+              userId: newUserId,
             });
             const { apiCache } = require('@/services/api/apiCache');
             await apiCache.clearAll();
           } catch (storeErr) {
             console.error('Error resetting store on user change:', storeErr);
+          }
+        } else {
+          try {
+            useClientStore.setState({ userId: newUserId });
+          } catch (storeErr) {
+            console.error('Error updating userId in store:', storeErr);
           }
         }
 
@@ -131,6 +144,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             bookingQueue: [],
             wishlistQueue: [],
             cartQueue: [],
+            userId: null,
           });
         } catch (storeErr) {
           console.error('Error clearing store on logout:', storeErr);

@@ -25,6 +25,7 @@ const mockProduct2: Product = {
 
 describe('Zustand clientStore Cart Actions', () => {
   beforeEach(() => {
+    useClientStore.setState({ userId: 'test-user-id' });
     useClientStore.getState().clearCart();
   });
 

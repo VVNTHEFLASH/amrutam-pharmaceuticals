@@ -16,7 +16,12 @@ function seededRandom(seedValue: number): number {
   return x - Math.floor(x);
 }
 
+const doctorCache = new Map<number, Doctor>();
+
 export function getDoctorByIndex(i: number): Doctor {
+  const cached = doctorCache.get(i);
+  if (cached) return cached;
+
   const seed = i + 1000;
   const r1 = seededRandom(seed + 1);
   const r2 = seededRandom(seed + 2);
@@ -37,7 +42,7 @@ export function getDoctorByIndex(i: number): Doctor {
   }
   if (availableDays.length === 0) availableDays.push('Monday');
 
-  return {
+  const instance = {
     id: `doc-${i + 1}`,
     name,
     specialty,
@@ -47,9 +52,16 @@ export function getDoctorByIndex(i: number): Doctor {
     consultationFee,
     availableDays,
   };
+  doctorCache.set(i, instance);
+  return instance;
 }
 
+const productCache = new Map<number, Product>();
+
 export function getProductByIndex(i: number): Product {
+  const cached = productCache.get(i);
+  if (cached) return cached;
+
   const seed = i + 20000;
   const r1 = seededRandom(seed + 1);
   const r2 = seededRandom(seed + 2);
@@ -64,7 +76,7 @@ export function getProductByIndex(i: number): Product {
   const rating = parseFloat((3.5 + r4 * 1.5).toFixed(1));
   const stock = Math.floor(r3 * 100) + 5;
 
-  return {
+  const instance = {
     id: `prod-${i + 1}`,
     name,
     category,
@@ -74,6 +86,8 @@ export function getProductByIndex(i: number): Product {
     rating,
     stock,
   };
+  productCache.set(i, instance);
+  return instance;
 }
 
 const RECORD_TYPES: ('Prescription' | 'Diagnostic Report' | 'Lab Result' | 'Immunization')[] = [
@@ -81,7 +95,12 @@ const RECORD_TYPES: ('Prescription' | 'Diagnostic Report' | 'Lab Result' | 'Immu
 ];
 const TAG_POOL = ['Ayurveda', 'Critical', 'Routine', 'Past Illness', 'Follow-up', 'Reference'];
 
+const healthRecordCache = new Map<number, HealthRecord>();
+
 export function getHealthRecordByIndex(i: number): HealthRecord {
+  const cached = healthRecordCache.get(i);
+  if (cached) return cached;
+
   const seed = i + 50000;
   const r1 = seededRandom(seed + 1);
   const r2 = seededRandom(seed + 2);
@@ -104,7 +123,7 @@ export function getHealthRecordByIndex(i: number): HealthRecord {
     tags.push(TAG_POOL[Math.floor(r3 * TAG_POOL.length)]);
   }
 
-  return {
+  const instance = {
     id: `rec-${i + 1}`,
     patientName,
     doctorName,
@@ -116,6 +135,8 @@ export function getHealthRecordByIndex(i: number): HealthRecord {
     type,
     tags,
   };
+  healthRecordCache.set(i, instance);
+  return instance;
 }
 
 export const TOTAL_DOCTORS = 5000;

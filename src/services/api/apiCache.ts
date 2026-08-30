@@ -87,4 +87,58 @@ export const apiCache = {
       console.warn('Failed to clear apiCache:', e);
     }
   },
+
+  async sweepExpiredEntries(): Promise<void> {
+    if (isSSR) {
+      return;
+    }
+    try {
+      if (Platform.OS === 'web' && typeof localStorage !== 'undefined') {
+        const keys: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith(CACHE_PREFIX)) {
+            keys.push(key);
+          }
+        }
+        for (const key of keys) {
+          const data = localStorage.getItem(key);
+          if (data) {
+            try {
+              const entry = JSON.parse(data) as CacheEntry<any>;
+              if (entry && typeof entry.timestamp === 'number' && typeof entry.ttl === 'number') {
+                if (Date.now() - entry.timestamp > entry.ttl) {
+                  localStorage.removeItem(key);
+                }
+              }
+            } catch (e) {
+              localStorage.removeItem(key);
+            }
+          }
+        }
+      } else {
+        const keys = await AsyncStorage.getAllKeys();
+        const cacheKeys = keys.filter((key) => key.startsWith(CACHE_PREFIX));
+        for (const key of cacheKeys) {
+          try {
+            const data = await AsyncStorage.getItem(key);
+            if (data) {
+              const entry = JSON.parse(data) as CacheEntry<any>;
+              if (entry && typeof entry.timestamp === 'number' && typeof entry.ttl === 'number') {
+                if (Date.now() - entry.timestamp > entry.ttl) {
+                  await AsyncStorage.removeItem(key);
+                }
+              }
+            }
+          } catch (e) {
+            try {
+              await AsyncStorage.removeItem(key);
+            } catch {}
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to sweep expired API cache entries:', e);
+    }
+  },
 };

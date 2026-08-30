@@ -325,6 +325,7 @@ export default function RecordsScreen() {
               onPress={() => updateFilters({ page: page - 1 })}
               accessibilityLabel="Previous page"
               accessibilityRole="button"
+              accessibilityState={{ disabled: page === 1 }}
               style={[
                 s.pageBtn,
                 { backgroundColor: theme.backgroundElement, borderColor: theme.backgroundSelected },
@@ -342,6 +343,7 @@ export default function RecordsScreen() {
               onPress={() => updateFilters({ page: page + 1 })}
               accessibilityLabel="Next page"
               accessibilityRole="button"
+              accessibilityState={{ disabled: page === totalPages }}
               style={[
                 s.pageBtn,
                 { backgroundColor: theme.backgroundElement, borderColor: theme.backgroundSelected },

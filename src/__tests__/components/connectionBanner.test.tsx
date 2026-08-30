@@ -211,6 +211,21 @@ describe('ConnectionBanner Component', () => {
     expect(button).toBeFalsy();
   });
 
+  it('should expose disabled state on button when manual sync is not triggering', () => {
+    mockStoreState.isConnected = true;
+    mockStoreState.syncStatus = 'failed';
+    mockStoreState.bookingQueue = [{ id: 'bk-1', status: 'pending' }];
+    mockIsTriggering = false;
+
+    const result = ConnectionBanner();
+    expect(result).not.toBeNull();
+    const row = result!.props.children;
+    const button = row.props.children[1];
+    expect(button).not.toBeNull();
+    expect(button.props.accessibilityState).toEqual({ disabled: false });
+    expect(button.props.disabled).toBe(false);
+  });
+
   it('should automatically hide Sync Now after queues become empty', () => {
     mockStoreState.isConnected = true;
     mockStoreState.syncStatus = 'failed';

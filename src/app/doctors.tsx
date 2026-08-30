@@ -12,6 +12,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { useClientStore } from '@/store/clientStore';
 import { useToastStore } from '@/store/toastStore';
 import { Doctor } from '@/types/domain';
+import { AppError } from '@/types/errors';
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react-native';
 
 const SP = ['General Physician', 'Ayurvedic Specialist', 'Homeopathic Specialist', 'Dermatologist'];
@@ -52,6 +53,9 @@ export default function DoctorsScreen() {
       showToast('success', `Appointment with ${doctor.name} booked successfully!`);
     } catch (err: any) {
       setMsg(err.message);
+      if (err instanceof AppError && err.code === 'UNAUTHORIZED') {
+        return;
+      }
       showToast('error', err.message);
     }
   };
@@ -209,6 +213,7 @@ export default function DoctorsScreen() {
               onPress={() => setFilters({ page: page - 1 })}
               accessibilityLabel="Previous page"
               accessibilityRole="button"
+              accessibilityState={{ disabled: page === 1 }}
               style={[
                 s.pageBtn,
                 { backgroundColor: theme.backgroundElement, borderColor: theme.backgroundSelected },
@@ -226,6 +231,7 @@ export default function DoctorsScreen() {
               onPress={() => setFilters({ page: page + 1 })}
               accessibilityLabel="Next page"
               accessibilityRole="button"
+              accessibilityState={{ disabled: page === totalPages }}
               style={[
                 s.pageBtn,
                 { backgroundColor: theme.backgroundElement, borderColor: theme.backgroundSelected },

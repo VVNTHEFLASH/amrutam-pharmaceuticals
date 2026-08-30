@@ -209,6 +209,9 @@ export function DoctorDetail({
                 <Pressable
                   disabled={status !== 'available'}
                   onPress={() => onBook(doctor, slot.time)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${slot.time} slot on ${selectedDate} is ${status}`}
+                  accessibilityState={{ disabled: status !== 'available' }}
                   style={[
                     styles.bookButton,
                     {

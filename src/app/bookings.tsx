@@ -1,6 +1,7 @@
 import React from 'react';
 import { FlatList, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -8,10 +9,12 @@ import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useConsultation } from '@/features/consultation/hooks/useConsultation';
 import { useClientStore } from '@/store/clientStore';
 import { useToastStore } from '@/store/toastStore';
+import { useAuth } from '@/context/AuthContext';
 
 const NOW = new Date(2026, 7, 30, 11, 0); // Sunday, Aug 30, 2026 at 11:00 AM
 
 export default function BookingsScreen() {
+  const { isAuthenticated } = useAuth();
   const bookingQueue = useClientStore((s) => s.bookingQueue);
   const { cancelBooking } = useConsultation();
   const showToast = useToastStore((s) => s.showToast);
@@ -70,6 +73,33 @@ export default function BookingsScreen() {
     );
   };
 
+  if (!isAuthenticated) {
+    return (
+      <ThemedView style={s.container}>
+        <SafeAreaView style={s.safe}>
+          <ThemedText type="subtitle" style={s.title}>
+            My Bookings
+          </ThemedText>
+          <View style={s.emptyContainer}>
+            <ThemedText type="default" style={{ marginBottom: Spacing.three }}>
+              Login to view bookings
+            </ThemedText>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Login to view bookings"
+              onPress={() => router.push('/profile')}
+              style={s.loginBtn}
+            >
+              <ThemedText type="smallBold" style={s.loginBtnText}>
+                Login
+              </ThemedText>
+            </Pressable>
+          </View>
+        </SafeAreaView>
+      </ThemedView>
+    );
+  }
+
   return (
     <ThemedView style={s.container}>
       <SafeAreaView style={s.safe}>
@@ -114,4 +144,15 @@ const s = StyleSheet.create({
   },
   cancelText: { color: '#ff4d4f' },
   emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loginBtn: {
+    backgroundColor: '#208AEF',
+    paddingVertical: Spacing.two,
+    paddingHorizontal: Spacing.four,
+    borderRadius: Spacing.one,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loginBtnText: {
+    color: '#fff',
+  },
 });
