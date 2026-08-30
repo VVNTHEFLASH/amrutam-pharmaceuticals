@@ -1,4 +1,5 @@
 import { doctorRepository } from '@/services/repositories/doctorRepository';
+import { bookingRepository } from '@/services/repositories/bookingRepository';
 import type { useClientStore as useClientStoreType } from '@/store/clientStore';
 import { Booking } from '@/types/domain';
 import { AppError } from '@/types/errors';
@@ -54,6 +55,14 @@ export const bookingSyncService = {
         store.updateBookingInQueue(booking.id, { attempts });
 
         try {
+          if (booking.mutationType === 'CANCEL') {
+            if (booking.userId) {
+              await bookingRepository.deleteBooking(booking.id, booking.userId);
+            }
+            store.removeQueuedBooking(booking.id);
+            continue;
+          }
+
           // 1. Expiry Check
           const bookingDate = new Date(booking.dateTime);
           const now = getCurrentTime();
@@ -107,6 +116,13 @@ export const bookingSyncService = {
           }
 
           // Synchronize successfully
+          if (booking.userId) {
+            await bookingRepository.createBooking({
+              ...booking,
+              status: 'synchronized',
+            }, booking.userId);
+          }
+
           store.updateBookingInQueue(booking.id, {
             status: 'synchronized',
             errorReason: undefined,

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase, isSupabaseConfigured } from '@/services/supabase';
-import { User, Session } from '@supabase/supabase-js';
+import { User, Session, AuthChangeEvent } from '@supabase/supabase-js';
 import { profileRepository } from '@/services/repositories/profileRepository';
 import { Profile } from '@/types/domain';
 import { AppError } from '@/types/errors';
@@ -42,24 +42,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let isMounted = true;
 
     // Fetch initial session
-    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+    supabase.auth.getSession().then(({ data: { session: initialSession } }: { data: { session: Session | null } }) => {
       if (!isMounted) return;
       if (initialSession) {
         setSession(initialSession);
         setUser(initialSession.user);
-        fetchAndSetProfile(initialSession.user.id).finally(() => {
+        fetchAndSetProfile(initialSession.user.id).then(async () => {
+          try {
+            const { reconciliationService } = require('@/services/reconciliationService');
+            await reconciliationService.reconcileUserData(initialSession.user.id);
+            const { userSyncService } = require('@/services/userSyncService');
+            await userSyncService.syncAll();
+          } catch (resErr) {
+            console.error('Error reconciling user data:', resErr);
+          }
+        }).finally(() => {
           if (isMounted) setIsLoading(false);
         });
       } else {
         setIsLoading(false);
       }
-    }).catch((err) => {
+    }).catch((err: any) => {
       console.error('Error getting session:', err);
       if (isMounted) setIsLoading(false);
     });
 
     // Listen to changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, newSession: Session | null) => {
       if (!isMounted) return;
       setSession(newSession);
       setUser(newSession?.user ?? null);
@@ -67,9 +76,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (newSession?.user) {
         setIsLoading(true);
         await fetchAndSetProfile(newSession.user.id);
+        
+        try {
+          const { reconciliationService } = require('@/services/reconciliationService');
+          await reconciliationService.reconcileUserData(newSession.user.id);
+          const { userSyncService } = require('@/services/userSyncService');
+          await userSyncService.syncAll();
+        } catch (resErr) {
+          console.error('Error reconciling user data:', resErr);
+        }
+
         if (isMounted) setIsLoading(false);
       } else {
         setProfile(null);
+        try {
+          const useClientStore = require('@/store/clientStore').useClientStore;
+          useClientStore.setState({
+            cart: [],
+            wishlist: [],
+            bookingQueue: [],
+            wishlistQueue: [],
+            cartQueue: [],
+          });
+        } catch (storeErr) {
+          console.error('Error clearing store on logout:', storeErr);
+        }
       }
     });
 

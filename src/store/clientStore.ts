@@ -5,6 +5,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { bookingSyncService } from '@/services/bookingSyncService';
 import { connectivityService } from '@/services/connectivity';
+import { supabase, isSupabaseConfigured } from '@/services/supabase';
 import { Booking, CartItem, Product } from '@/types/domain';
 
 export interface ClientState {
@@ -13,6 +14,8 @@ export interface ClientState {
   bookingQueue: Booking[];
   isConnected: boolean;
   syncStatus: 'idle' | 'syncing' | 'completed' | 'failed';
+  wishlistQueue: { id: string; type: 'ADD' | 'REMOVE'; productId: string; attempts?: number }[];
+  cartQueue: { id: string; type: 'ADD' | 'REMOVE' | 'UPDATE' | 'CLEAR'; productId?: string; quantity?: number; attempts?: number }[];
 }
 
 export interface ClientActions {
@@ -41,6 +44,53 @@ export interface ClientActions {
 
 export type ClientStore = ClientState & ClientActions;
 
+const queueWishlistMutation = (type: 'ADD' | 'REMOVE', productId: string) => {
+  (async () => {
+    if (isSupabaseConfigured && supabase?.auth?.getSession) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          useClientStore.setState((state) => ({
+            wishlistQueue: [...(state.wishlistQueue || []), {
+              id: `wl-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+              type,
+              productId,
+            }],
+          }));
+          const { userSyncService } = require('@/services/userSyncService');
+          userSyncService.syncAll().catch(console.error);
+        }
+      } catch (err) {
+        // Safe catch
+      }
+    }
+  })();
+};
+
+const queueCartMutation = (type: 'ADD' | 'REMOVE' | 'UPDATE' | 'CLEAR', productId?: string, quantity?: number) => {
+  (async () => {
+    if (isSupabaseConfigured && supabase?.auth?.getSession) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          useClientStore.setState((state) => ({
+            cartQueue: [...(state.cartQueue || []), {
+              id: `cart-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+              type,
+              productId,
+              quantity,
+            }],
+          }));
+          const { userSyncService } = require('@/services/userSyncService');
+          userSyncService.syncAll().catch(console.error);
+        }
+      } catch (err) {
+        // Safe catch
+      }
+    }
+  })();
+};
+
 export const useClientStore = create<ClientStore>()(
   persist(
     (set) => ({
@@ -50,19 +100,24 @@ export const useClientStore = create<ClientStore>()(
       bookingQueue: [],
       isConnected: connectivityService.getIsConnected(),
       syncStatus: 'idle',
+      wishlistQueue: [],
+      cartQueue: [],
 
       // Cart Actions
       addToCart: (product, quantity = 1) =>
         set((state) => {
           const existingItemIndex = state.cart.findIndex((item) => item.productId === product.id);
           if (existingItemIndex > -1) {
+            const finalQty = state.cart[existingItemIndex].quantity + quantity;
             const updatedCart = [...state.cart];
             updatedCart[existingItemIndex] = {
               ...updatedCart[existingItemIndex],
-              quantity: updatedCart[existingItemIndex].quantity + quantity,
+              quantity: finalQty,
             };
+            queueCartMutation('ADD', product.id, finalQty);
             return { cart: updatedCart };
           }
+          queueCartMutation('ADD', product.id, quantity);
           return {
             cart: [...state.cart, { productId: product.id, product, quantity }],
           };
@@ -71,10 +126,12 @@ export const useClientStore = create<ClientStore>()(
       updateCartQuantity: (productId, quantity) =>
         set((state) => {
           if (quantity <= 0) {
+            queueCartMutation('REMOVE', productId);
             return {
               cart: state.cart.filter((item) => item.productId !== productId),
             };
           }
+          queueCartMutation('UPDATE', productId, quantity);
           return {
             cart: state.cart.map((item) =>
               item.productId === productId ? { ...item, quantity } : item
@@ -83,11 +140,18 @@ export const useClientStore = create<ClientStore>()(
         }),
 
       removeFromCart: (productId) =>
-        set((state) => ({
-          cart: state.cart.filter((item) => item.productId !== productId),
-        })),
+        set((state) => {
+          queueCartMutation('REMOVE', productId);
+          return {
+            cart: state.cart.filter((item) => item.productId !== productId),
+          };
+        }),
 
-      clearCart: () => set({ cart: [] }),
+      clearCart: () =>
+        set((state) => {
+          queueCartMutation('CLEAR');
+          return { cart: [] };
+        }),
 
       // Wishlist Actions
       addToWishlist: (productId) =>
@@ -95,17 +159,22 @@ export const useClientStore = create<ClientStore>()(
           if (state.wishlist.includes(productId)) {
             return state;
           }
+          queueWishlistMutation('ADD', productId);
           return { wishlist: [...state.wishlist, productId] };
         }),
 
       removeFromWishlist: (productId) =>
-        set((state) => ({
-          wishlist: state.wishlist.filter((id) => id !== productId),
-        })),
+        set((state) => {
+          queueWishlistMutation('REMOVE', productId);
+          return {
+            wishlist: state.wishlist.filter((id) => id !== productId),
+          };
+        }),
 
       toggleWishlist: (productId) =>
         set((state) => {
           const exists = state.wishlist.includes(productId);
+          queueWishlistMutation(exists ? 'REMOVE' : 'ADD', productId);
           return {
             wishlist: exists
               ? state.wishlist.filter((id) => id !== productId)
@@ -164,6 +233,8 @@ export const useClientStore = create<ClientStore>()(
         cart: state.cart,
         wishlist: state.wishlist,
         bookingQueue: state.bookingQueue,
+        wishlistQueue: state.wishlistQueue,
+        cartQueue: state.cartQueue,
       }),
     }
   )
@@ -177,5 +248,7 @@ connectivityService.subscribe((isConnected) => {
 
   if (isConnected && !wasConnected) {
     bookingSyncService.sync().catch(console.error);
+    const { userSyncService } = require('@/services/userSyncService');
+    userSyncService.syncAll().catch(console.error);
   }
 });

@@ -133,3 +133,168 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
+-- ==========================================
+-- PHASE 2B MIGRATIONS: USER-OWNED PERSISTENCE
+-- ==========================================
+
+-- 8. Alter Health Records table to support user-owned records
+ALTER TABLE public.health_records ADD COLUMN IF NOT EXISTS user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE;
+ALTER TABLE public.health_records ALTER COLUMN seed_index DROP NOT NULL;
+
+-- 9. Create Bookings Table
+CREATE TABLE IF NOT EXISTS public.bookings (
+    id text PRIMARY KEY,
+    user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    doctor_id text NOT NULL REFERENCES public.doctors(id),
+    doctor_name text NOT NULL,
+    date_time text NOT NULL,
+    patient_name text NOT NULL,
+    notes text,
+    status text NOT NULL,
+    created_at timestamptz DEFAULT now() NOT NULL,
+    updated_at timestamptz DEFAULT now() NOT NULL
+);
+
+-- Enable RLS for Bookings
+ALTER TABLE public.bookings ENABLE ROW LEVEL SECURITY;
+
+-- 10. Create Wishlist Table
+CREATE TABLE IF NOT EXISTS public.wishlist_items (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    product_id text NOT NULL REFERENCES public.products(id),
+    created_at timestamptz DEFAULT now() NOT NULL,
+    CONSTRAINT unique_user_product UNIQUE (user_id, product_id)
+);
+
+-- Enable RLS for Wishlist Items
+ALTER TABLE public.wishlist_items ENABLE ROW LEVEL SECURITY;
+
+-- 11. Create Carts and Cart Items Tables
+CREATE TABLE IF NOT EXISTS public.carts (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id uuid NOT NULL UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
+    created_at timestamptz DEFAULT now() NOT NULL,
+    updated_at timestamptz DEFAULT now() NOT NULL
+);
+
+-- Enable RLS for Carts
+ALTER TABLE public.carts ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS public.cart_items (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    cart_id uuid NOT NULL REFERENCES public.carts(id) ON DELETE CASCADE,
+    product_id text NOT NULL REFERENCES public.products(id),
+    quantity integer NOT NULL CHECK (quantity > 0),
+    created_at timestamptz DEFAULT now() NOT NULL,
+    updated_at timestamptz DEFAULT now() NOT NULL,
+    CONSTRAINT unique_cart_product UNIQUE (cart_id, product_id)
+);
+
+-- Enable RLS for Cart Items
+ALTER TABLE public.cart_items ENABLE ROW LEVEL SECURITY;
+
+
+-- 12. Create Indexes for Performance
+CREATE INDEX IF NOT EXISTS idx_bookings_user_id ON public.bookings (user_id);
+CREATE INDEX IF NOT EXISTS idx_bookings_user_id_date ON public.bookings (user_id, date_time DESC);
+CREATE INDEX IF NOT EXISTS idx_bookings_doctor_id ON public.bookings (doctor_id);
+
+CREATE INDEX IF NOT EXISTS idx_health_records_user_id ON public.health_records (user_id);
+CREATE INDEX IF NOT EXISTS idx_wishlist_items_user_id ON public.wishlist_items (user_id);
+CREATE INDEX IF NOT EXISTS idx_carts_user_id ON public.carts (user_id);
+CREATE INDEX IF NOT EXISTS idx_cart_items_cart_id ON public.cart_items (cart_id);
+
+-- 13. Enable RLS Policies
+
+-- Drop existing public read policy on health records and replace it with user-level isolation
+DROP POLICY IF EXISTS "Allow public read access" ON public.health_records;
+
+CREATE POLICY "Allow public read access" ON public.health_records
+    FOR SELECT TO anon, authenticated USING (user_id IS NULL OR auth.uid() = user_id);
+
+CREATE POLICY "Allow users to insert their own health records" ON public.health_records
+    FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Allow users to update their own health records" ON public.health_records
+    FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Allow users to delete their own health records" ON public.health_records
+    FOR DELETE TO authenticated USING (auth.uid() = user_id);
+
+-- Bookings Policies
+CREATE POLICY "Allow users to read their own bookings" ON public.bookings
+    FOR SELECT TO authenticated USING (auth.uid() = user_id);
+
+CREATE POLICY "Allow users to insert their own bookings" ON public.bookings
+    FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Allow users to update their own bookings" ON public.bookings
+    FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Allow users to delete their own bookings" ON public.bookings
+    FOR DELETE TO authenticated USING (auth.uid() = user_id);
+
+-- Wishlist Policies
+CREATE POLICY "Allow users to read their own wishlist" ON public.wishlist_items
+    FOR SELECT TO authenticated USING (auth.uid() = user_id);
+
+CREATE POLICY "Allow users to insert their own wishlist" ON public.wishlist_items
+    FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Allow users to delete their own wishlist" ON public.wishlist_items
+    FOR DELETE TO authenticated USING (auth.uid() = user_id);
+
+-- Cart Policies
+CREATE POLICY "Allow users to read their own cart" ON public.carts
+    FOR SELECT TO authenticated USING (auth.uid() = user_id);
+
+CREATE POLICY "Allow users to insert their own cart" ON public.carts
+    FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Allow users to delete their own cart" ON public.carts
+    FOR DELETE TO authenticated USING (auth.uid() = user_id);
+
+-- Cart Items Policies
+CREATE POLICY "Allow users to read their own cart items" ON public.cart_items
+    FOR SELECT TO authenticated USING (
+        EXISTS (
+            SELECT 1 FROM public.carts
+            WHERE public.carts.id = public.cart_items.cart_id
+              AND public.carts.user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Allow users to insert their own cart items" ON public.cart_items
+    FOR INSERT TO authenticated WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM public.carts
+            WHERE public.carts.id = public.cart_items.cart_id
+              AND public.carts.user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Allow users to update their own cart items" ON public.cart_items
+    FOR UPDATE TO authenticated USING (
+        EXISTS (
+            SELECT 1 FROM public.carts
+            WHERE public.carts.id = public.cart_items.cart_id
+              AND public.carts.user_id = auth.uid()
+        )
+    )
+    WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM public.carts
+            WHERE public.carts.id = public.cart_items.cart_id
+              AND public.carts.user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Allow users to delete their own cart items" ON public.cart_items
+    FOR DELETE TO authenticated USING (
+        EXISTS (
+            SELECT 1 FROM public.carts
+            WHERE public.carts.id = public.cart_items.cart_id
+              AND public.carts.user_id = auth.uid()
+        )
+    );

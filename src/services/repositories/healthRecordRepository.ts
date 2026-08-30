@@ -36,6 +36,18 @@ function mapDbHealthRecord(row: any): HealthRecord {
 
 export const healthRecordRepository = {
   async getHealthRecords(query: HealthRecordQuery): Promise<PaginatedResult<HealthRecord>> {
+    let userId = 'anonymous';
+    if (isSupabaseConfigured && supabase?.auth?.getSession) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          userId = session.user.id;
+        }
+      } catch (e) {
+        // Safe catch
+      }
+    }
+
     const parts = [
       `page=${query.page || 1}`,
       `pageSize=${query.pageSize || 10}`,
@@ -46,7 +58,7 @@ export const healthRecordRepository = {
       query.month !== undefined ? `month=${query.month}` : '',
       query.date ? `date=${encodeURIComponent(query.date)}` : '',
     ].filter(Boolean).sort().join('&');
-    const cacheKey = `healthRecords?${parts}`;
+    const cacheKey = `healthRecords:${userId}?${parts}`;
 
     return apiClient.execute(cacheKey, async () => {
       const page = query.page || 1;
@@ -85,8 +97,8 @@ export const healthRecordRepository = {
           queryBuilder = queryBuilder.or(`patient_name.ilike.%${searchClean}%,doctor_name.ilike.%${searchClean}%,diagnosis.ilike.%${searchClean}%,treatment.ilike.%${searchClean}%`);
         }
 
-        // Always order by seed_index asc as stable sort order
-        queryBuilder = queryBuilder.order('seed_index', { ascending: true });
+        // Always order by date desc, then seed_index asc
+        queryBuilder = queryBuilder.order('date', { ascending: false }).order('seed_index', { ascending: true });
 
         const start = (page - 1) * pageSize;
         const end = start + pageSize - 1;
@@ -165,15 +177,6 @@ export const healthRecordRepository = {
 
   async getHealthRecordById(id: string): Promise<HealthRecord> {
     return apiClient.execute(`healthRecords/${id}`, async () => {
-      const match = id.match(/^rec-(\d+)$/);
-      if (!match) {
-        throw new AppError('UNKNOWN_FAILURE', `Invalid health record ID: ${id}`);
-      }
-      const index = parseInt(match[1], 10) - 1;
-      if (index < 0 || index >= TOTAL_HEALTH_RECORDS) {
-        throw new AppError('UNKNOWN_FAILURE', `Health record with ID ${id} not found.`);
-      }
-
       if (isSupabaseConfigured) {
         const { data, error } = await supabase
           .from('health_records')
@@ -181,13 +184,71 @@ export const healthRecordRepository = {
           .eq('id', id)
           .single();
 
-        if (error || !data) {
-          throw new AppError('UNKNOWN_FAILURE', `Health record with ID ${id} not found from Supabase.`, error);
+        if (data) {
+          return mapDbHealthRecord(data);
         }
-        return mapDbHealthRecord(data);
+      }
+
+      const match = id.match(/^rec-(\d+)$/);
+      if (!match) {
+        throw new AppError('UNKNOWN_FAILURE', `Health record with ID ${id} not found.`);
+      }
+      const index = parseInt(match[1], 10) - 1;
+      if (index < 0 || index >= TOTAL_HEALTH_RECORDS) {
+        throw new AppError('UNKNOWN_FAILURE', `Health record with ID ${id} not found.`);
       }
 
       return getHealthRecordByIndex(index);
     });
+  },
+
+  async createHealthRecord(record: Omit<HealthRecord, 'id'>, userId: string): Promise<HealthRecord> {
+    const recordId = `rec-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    if (!isSupabaseConfigured) {
+      return {
+        ...record,
+        id: recordId,
+      };
+    }
+
+    const { data, error } = await supabase
+      .from('health_records')
+      .insert({
+        id: recordId,
+        user_id: userId,
+        patient_name: record.patientName,
+        doctor_name: record.doctorName,
+        date: record.date,
+        diagnosis: record.diagnosis,
+        treatment: record.treatment,
+        prescription: record.prescription,
+        attachment_url: record.attachmentUrl || null,
+        type: record.type,
+        tags: record.tags,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      throw new AppError('UNKNOWN_FAILURE', `Failed to create health record: ${error.message}`, error);
+    }
+
+    return mapDbHealthRecord(data);
+  },
+
+  async deleteHealthRecord(id: string, userId: string): Promise<void> {
+    if (!isSupabaseConfigured) {
+      return;
+    }
+
+    const { error } = await supabase
+      .from('health_records')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', userId);
+
+    if (error) {
+      throw new AppError('UNKNOWN_FAILURE', `Failed to delete health record: ${error.message}`, error);
+    }
   },
 };

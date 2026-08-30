@@ -35,6 +35,7 @@ export interface HealthRecord {
 
 export interface Booking {
   id: string; // Client-generated UUID or custom unique ID
+  userId?: string;
   doctorId: string;
   doctorName: string;
   dateTime: string;      // ISO string

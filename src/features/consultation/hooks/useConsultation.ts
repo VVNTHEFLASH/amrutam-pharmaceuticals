@@ -5,6 +5,8 @@ import { useClientStore } from '@/store/clientStore';
 import { DoctorQuery, TimeSlot } from '@/types/api';
 import { Doctor } from '@/types/domain';
 import { AppError } from '@/types/errors';
+import { useAuth } from '@/context/AuthContext';
+import { bookingSyncService } from '@/services/bookingSyncService';
 
 import { isSlotExpired, parseSlotDateTime } from '../utils/dateUtils';
 
@@ -30,9 +32,11 @@ export function useConsultation() {
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [slotsError, setSlotsError] = useState<string | null>(null);
 
+  const { user } = useAuth();
   const bookingQueue = useClientStore((state) => state.bookingQueue);
   const enqueueBooking = useClientStore((state) => state.enqueueBooking);
   const removeQueuedBooking = useClientStore((state) => state.removeQueuedBooking);
+  const updateBookingInQueue = useClientStore((state) => state.updateBookingInQueue);
 
   const fetchDoctors = useCallback(async () => {
     setLoading(true);
@@ -139,6 +143,7 @@ export function useConsultation() {
 
       enqueueBooking({
         id: `book-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        userId: user?.id,
         doctorId: doctor.id,
         doctorName: doctor.name,
         dateTime: slotDate.toISOString(),
@@ -153,7 +158,7 @@ export function useConsultation() {
         // Silent catch for offline refresh failures
       }
     },
-    [bookingQueue, enqueueBooking, fetchDoctorSlots]
+    [bookingQueue, enqueueBooking, fetchDoctorSlots, user]
   );
 
   const cancelBooking = useCallback(
@@ -165,9 +170,18 @@ export function useConsultation() {
       if (new Date(booking.dateTime).getTime() < NOW.getTime()) {
         throw new AppError('UNKNOWN_FAILURE', 'Cannot cancel expired consultations.');
       }
-      removeQueuedBooking(bookingId);
+      if (booking.userId) {
+        if (booking.status === 'synchronized') {
+          updateBookingInQueue(bookingId, { status: 'pending', mutationType: 'CANCEL' });
+          bookingSyncService.sync().catch(console.error);
+        } else {
+          removeQueuedBooking(bookingId);
+        }
+      } else {
+        removeQueuedBooking(bookingId);
+      }
     },
-    [bookingQueue, removeQueuedBooking]
+    [bookingQueue, removeQueuedBooking, updateBookingInQueue]
   );
 
   return {
