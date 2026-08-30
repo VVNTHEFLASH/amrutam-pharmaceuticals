@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, FlatList, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Alert, FlatList, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -10,6 +10,9 @@ import { useRecords } from '@/features/records/hooks/useRecords';
 import { useTheme } from '@/hooks/use-theme';
 import { HealthRecordType } from '@/types/api';
 import { HealthRecord } from '@/types/domain';
+import { Search, ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react-native';
+import { HorizontalFilterRow } from '@/components/horizontal-filter-row';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const TYPES: HealthRecordType[] = ['Prescription', 'Diagnostic Report', 'Lab Result', 'Immunization'];
 const TAGS = ['Ayurveda', 'Critical', 'Routine', 'Past Illness', 'Follow-up', 'Reference'];
@@ -48,6 +51,30 @@ export default function RecordsScreen() {
   const [selectedRecord, setSelectedRecord] = useState<HealthRecord | null>(null);
   const [localSearch, setLocalSearch] = useState(filters.search);
   const [localDate, setLocalDate] = useState(filters.date);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  const getPickerDate = () => {
+    if (!localDate) return new Date();
+    const parts = localDate.split('-');
+    if (parts.length !== 3) return new Date();
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10);
+    const day = parseInt(parts[2], 10);
+    if (isNaN(year) || isNaN(month) || isNaN(day)) return new Date();
+    return new Date(year, month - 1, day);
+  };
+
+  const handleDateChange = (event: any, selectedDate?: Date) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      const yyyy = selectedDate.getFullYear();
+      const mm = String(selectedDate.getMonth() + 1).padStart(2, '0');
+      const dd = String(selectedDate.getDate()).padStart(2, '0');
+      const formatted = `${yyyy}-${mm}-${dd}`;
+      setLocalDate(formatted);
+      updateFilters({ date: formatted, page: 1 });
+    }
+  };
 
   const handleResetAll = () => {
     resetFilters();
@@ -88,103 +115,142 @@ export default function RecordsScreen() {
             placeholder="Search provider, diagnoses..."
             placeholderTextColor="#999"
           />
-          <Pressable style={s.btn} onPress={() => updateFilters({ search: localSearch, page: 1 })}>
-            <ThemedText type="smallBold" style={{ color: '#fff' }}>
-              Search
-            </ThemedText>
+          <Pressable
+            style={s.btn}
+            accessibilityLabel="Search"
+            onPress={() => updateFilters({ search: localSearch, page: 1 })}>
+            <Search size={16} color="#fff" />
           </Pressable>
         </View>
 
         {/* Type / Category Filters */}
-        <View style={{ height: 32, marginBottom: 8 }}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <HorizontalFilterRow>
+          <Pressable
+            onPress={() => updateFilters({ type: undefined, page: 1 })}
+            style={[s.chip, { backgroundColor: theme.backgroundElement }, !filters.type && s.act]}>
+            <ThemedText type="small">All Types</ThemedText>
+          </Pressable>
+          {TYPES.map((type) => (
             <Pressable
-              onPress={() => updateFilters({ type: undefined, page: 1 })}
-              style={[s.chip, { backgroundColor: theme.backgroundElement }, !filters.type && s.act]}>
-              <ThemedText type="small">All Types</ThemedText>
+              key={type}
+              onPress={() => updateFilters({ type, page: 1 })}
+              style={[s.chip, { backgroundColor: theme.backgroundElement }, filters.type === type && s.act]}>
+              <ThemedText type="small">{type}</ThemedText>
             </Pressable>
-            {TYPES.map((type) => (
-              <Pressable
-                key={type}
-                onPress={() => updateFilters({ type, page: 1 })}
-                style={[s.chip, { backgroundColor: theme.backgroundElement }, filters.type === type && s.act]}>
-                <ThemedText type="small">{type}</ThemedText>
-              </Pressable>
-            ))}
-          </ScrollView>
-        </View>
+          ))}
+        </HorizontalFilterRow>
 
         {/* Tag Filters */}
-        <View style={{ height: 32, marginBottom: 8 }}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <HorizontalFilterRow>
+          <Pressable
+            onPress={() => updateFilters({ tag: '', page: 1 })}
+            style={[s.chip, { backgroundColor: theme.backgroundElement }, !filters.tag && s.act]}>
+            <ThemedText type="small">All Tags</ThemedText>
+          </Pressable>
+          {TAGS.map((tag) => (
             <Pressable
-              onPress={() => updateFilters({ tag: '', page: 1 })}
-              style={[s.chip, { backgroundColor: theme.backgroundElement }, !filters.tag && s.act]}>
-              <ThemedText type="small">All Tags</ThemedText>
+              key={tag}
+              onPress={() => updateFilters({ tag, page: 1 })}
+              style={[s.chip, { backgroundColor: theme.backgroundElement }, filters.tag === tag && s.act]}>
+              <ThemedText type="small">{tag}</ThemedText>
             </Pressable>
-            {TAGS.map((tag) => (
-              <Pressable
-                key={tag}
-                onPress={() => updateFilters({ tag, page: 1 })}
-                style={[s.chip, { backgroundColor: theme.backgroundElement }, filters.tag === tag && s.act]}>
-                <ThemedText type="small">{tag}</ThemedText>
-              </Pressable>
-            ))}
-          </ScrollView>
-        </View>
+          ))}
+        </HorizontalFilterRow>
 
         {/* Year Filters */}
-        <View style={{ height: 32, marginBottom: 8 }}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <HorizontalFilterRow>
+          <Pressable
+            onPress={() => updateFilters({ year: undefined, page: 1 })}
+            style={[s.chip, { backgroundColor: theme.backgroundElement }, filters.year === undefined && s.act]}>
+            <ThemedText type="small">All Years</ThemedText>
+          </Pressable>
+          {YEARS.map((yr) => (
             <Pressable
-              onPress={() => updateFilters({ year: undefined, page: 1 })}
-              style={[s.chip, { backgroundColor: theme.backgroundElement }, filters.year === undefined && s.act]}>
-              <ThemedText type="small">All Years</ThemedText>
+              key={yr}
+              onPress={() => updateFilters({ year: yr, page: 1 })}
+              style={[s.chip, { backgroundColor: theme.backgroundElement }, filters.year === yr && s.act]}>
+              <ThemedText type="small">{yr}</ThemedText>
             </Pressable>
-            {YEARS.map((yr) => (
-              <Pressable
-                key={yr}
-                onPress={() => updateFilters({ year: yr, page: 1 })}
-                style={[s.chip, { backgroundColor: theme.backgroundElement }, filters.year === yr && s.act]}>
-                <ThemedText type="small">{yr}</ThemedText>
-              </Pressable>
-            ))}
-          </ScrollView>
-        </View>
+          ))}
+        </HorizontalFilterRow>
 
         {/* Month Filters */}
-        <View style={{ height: 32, marginBottom: 8 }}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <HorizontalFilterRow>
+          <Pressable
+            onPress={() => updateFilters({ month: undefined, page: 1 })}
+            style={[s.chip, { backgroundColor: theme.backgroundElement }, filters.month === undefined && s.act]}>
+            <ThemedText type="small">All Months</ThemedText>
+          </Pressable>
+          {MONTHS.map((mn) => (
             <Pressable
-              onPress={() => updateFilters({ month: undefined, page: 1 })}
-              style={[s.chip, { backgroundColor: theme.backgroundElement }, filters.month === undefined && s.act]}>
-              <ThemedText type="small">All Months</ThemedText>
+              key={mn.val}
+              onPress={() => updateFilters({ month: mn.val, page: 1 })}
+              style={[s.chip, { backgroundColor: theme.backgroundElement }, filters.month === mn.val && s.act]}>
+              <ThemedText type="small">{mn.label}</ThemedText>
             </Pressable>
-            {MONTHS.map((mn) => (
-              <Pressable
-                key={mn.val}
-                onPress={() => updateFilters({ month: mn.val, page: 1 })}
-                style={[s.chip, { backgroundColor: theme.backgroundElement }, filters.month === mn.val && s.act]}>
-                <ThemedText type="small">{mn.label}</ThemedText>
-              </Pressable>
-            ))}
-          </ScrollView>
-        </View>
+          ))}
+        </HorizontalFilterRow>
 
         {/* Date Filter Input */}
         <View style={s.header}>
-          <TextInput
-            style={s.input}
-            value={localDate}
-            onChangeText={setLocalDate}
-            placeholder="Date (YYYY-MM-DD)..."
-            placeholderTextColor="#999"
-          />
-          <Pressable style={s.btn} onPress={() => updateFilters({ date: localDate, page: 1 })}>
-            <ThemedText type="smallBold" style={{ color: '#fff' }}>
-              Set Date
-            </ThemedText>
-          </Pressable>
+          {Platform.OS === 'web' ? (
+            <input
+              type="date"
+              value={localDate || ''}
+              onChange={(e) => {
+                const selected = e.target.value; // YYYY-MM-DD
+                setLocalDate(selected);
+                updateFilters({ date: selected, page: 1 });
+              }}
+              style={{
+                flex: 1,
+                padding: 10,
+                borderRadius: 4,
+                border: '1px solid #ccc',
+                backgroundColor: theme.backgroundElement,
+                color: theme.text,
+                fontFamily: 'Poppins_500Medium',
+                fontSize: 14,
+                height: 40,
+                outline: 'none',
+              }}
+            />
+          ) : (
+            <Pressable
+              style={[s.dateBtn, { backgroundColor: theme.backgroundElement, borderColor: theme.backgroundSelected }]}
+              onPress={() => setShowDatePicker(true)}
+              accessibilityLabel="Select date filter"
+            >
+              <CalendarDays size={16} color={theme.text} style={{ marginRight: 8 }} />
+              <ThemedText type="smallBold" themeColor={localDate ? 'text' : 'textSecondary'}>
+                {localDate ? localDate : 'Select Date'}
+              </ThemedText>
+            </Pressable>
+          )}
+
+          {localDate ? (
+            <Pressable
+              style={[s.btn, { backgroundColor: '#FF4D4F', marginLeft: 8 }]}
+              onPress={() => {
+                setLocalDate('');
+                updateFilters({ date: '', page: 1 });
+              }}
+              accessibilityLabel="Clear date filter"
+            >
+              <ThemedText type="smallBold" style={{ color: '#fff' }}>
+                Clear
+              </ThemedText>
+            </Pressable>
+          ) : null}
+
+          {showDatePicker && Platform.OS !== 'web' && (
+            <DateTimePicker
+              value={getPickerDate()}
+              mode="date"
+              display="default"
+              onChange={handleDateChange}
+            />
+          )}
         </View>
 
         {/* Results Info */}
@@ -219,6 +285,7 @@ export default function RecordsScreen() {
           <FlatList
             data={records}
             keyExtractor={(item) => item.id}
+            contentContainerStyle={{ paddingBottom: 96 }}
             renderItem={({ item }) => (
               <Pressable onPress={() => setSelectedRecord(item)}>
                 <ThemedView type="backgroundElement" style={s.card}>
@@ -249,17 +316,19 @@ export default function RecordsScreen() {
           <Pressable
             disabled={page === 1}
             onPress={() => updateFilters({ page: page - 1 })}
-            style={[s.pageBtn, page === 1 && { opacity: 0.5 }]}>
-            <ThemedText type="smallBold">Prev</ThemedText>
+            accessibilityLabel="Previous page"
+            style={[s.pageBtn, { backgroundColor: theme.backgroundElement }, page === 1 && { opacity: 0.3 }]}>
+            <ChevronLeft size={16} color={theme.text} />
           </Pressable>
           <ThemedText type="small">
-            Page {page} / {totalPages}
+            {page} / {totalPages}
           </ThemedText>
           <Pressable
             disabled={page === totalPages}
             onPress={() => updateFilters({ page: page + 1 })}
-            style={[s.pageBtn, page === totalPages && { opacity: 0.5 }]}>
-            <ThemedText type="smallBold">Next</ThemedText>
+            accessibilityLabel="Next page"
+            style={[s.pageBtn, { backgroundColor: theme.backgroundElement }, page === totalPages && { opacity: 0.3 }]}>
+            <ChevronRight size={16} color={theme.text} />
           </Pressable>
         </View>
       </SafeAreaView>
@@ -269,7 +338,17 @@ export default function RecordsScreen() {
 
 const s = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: Spacing.four, justifyContent: 'center', flexDirection: 'row' },
-  safe: { flex: 1, maxWidth: MaxContentWidth, paddingBottom: Spacing.three },
+  safe: { flex: 1, maxWidth: MaxContentWidth, paddingBottom: 0 },
+  dateBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 4,
+    paddingHorizontal: 12,
+    height: 40,
+    justifyContent: 'center',
+  },
   topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 12 },
   resetBtn: { paddingVertical: Spacing.one },
   header: { flexDirection: 'row', gap: 8, marginBottom: 12 },

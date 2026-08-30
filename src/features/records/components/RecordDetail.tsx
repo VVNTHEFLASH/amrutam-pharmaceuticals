@@ -108,7 +108,7 @@ export function RecordDetail({ record, onBack }: RecordDetailProps) {
 const s = StyleSheet.create({
   container: { flex: 1, padding: Spacing.two },
   backButton: { marginBottom: Spacing.three, paddingVertical: Spacing.one },
-  scroll: { paddingBottom: Spacing.four },
+  scroll: { paddingBottom: 96 },
   card: { padding: Spacing.four, borderRadius: Spacing.three },
   title: { fontWeight: '600', marginBottom: Spacing.one },
   meta: { marginBottom: Spacing.two },

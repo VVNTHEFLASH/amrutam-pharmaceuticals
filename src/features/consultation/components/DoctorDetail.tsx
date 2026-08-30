@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
     color: '#000',
   },
   slotsHeader: { marginBottom: Spacing.two },
-  slotsGrid: { gap: Spacing.two },
+  slotsGrid: { gap: Spacing.two, paddingBottom: 96 },
   slotRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

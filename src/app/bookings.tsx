@@ -103,9 +103,9 @@ export default function BookingsScreen() {
 
 const s = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: Spacing.four, justifyContent: 'center', flexDirection: 'row' },
-  safe: { flex: 1, maxWidth: MaxContentWidth, paddingBottom: Spacing.three },
+  safe: { flex: 1, maxWidth: MaxContentWidth, paddingBottom: 0 },
   title: { marginVertical: Spacing.three },
-  listContent: { gap: Spacing.three },
+  listContent: { gap: Spacing.three, paddingBottom: 96 },
   card: { padding: Spacing.three, borderRadius: Spacing.two, gap: Spacing.one },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   statusBadge: { paddingHorizontal: Spacing.two, paddingVertical: Spacing.half, borderRadius: Spacing.one },

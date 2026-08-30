@@ -32,3 +32,12 @@ jest.mock('@react-native-community/netinfo', () => {
     }),
   };
 });
+
+jest.mock('@react-native-community/datetimepicker', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+  return jest.fn().mockImplementation((props) => {
+    return React.createElement(View, { testID: 'dateTimePicker', ...props });
+  });
+});
+

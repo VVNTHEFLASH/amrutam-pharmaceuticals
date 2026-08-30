@@ -113,7 +113,7 @@ const s = StyleSheet.create({
   emptyWrapper: { flex: 1, justifyContent: 'center', alignItems: 'center', minHeight: 250 },
   emptyText: { marginBottom: Spacing.three },
   shopBtn: { backgroundColor: '#208AEF', paddingHorizontal: Spacing.four, paddingVertical: Spacing.two, borderRadius: 8 },
-  listContent: { paddingBottom: Spacing.three },
+  listContent: { paddingBottom: 96 },
   itemRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Alert, FlatList, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Alert, FlatList, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -10,6 +10,8 @@ import { ProductDetail } from '@/features/shop/components/ProductDetail';
 import { useTheme } from '@/hooks/use-theme';
 import { useShop } from '@/features/shop/hooks/useShop';
 import { useClientStore } from '@/store/clientStore';
+import { Search, ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { HorizontalFilterRow } from '@/components/horizontal-filter-row';
 import { Product } from '@/types/domain';
 
 const CATS = ['Ayurvedic Medicine', 'Homeopathy', 'Wellness & Nutrition', 'Personal Care', 'Baby Care', 'Devices'];
@@ -148,65 +150,60 @@ export default function ShopScreen() {
             placeholder="Search products..."
             placeholderTextColor="#999"
           />
-          <Pressable style={s.btn} onPress={() => updateFilters({ search: localSearch, page: 1 })}>
-            <ThemedText type="smallBold" style={{ color: '#fff' }}>
-              Search
-            </ThemedText>
+          <Pressable
+            style={s.btn}
+            accessibilityLabel="Search"
+            onPress={() => updateFilters({ search: localSearch, page: 1 })}>
+            <Search size={16} color="#fff" />
           </Pressable>
         </View>
 
         {/* Category Filters */}
-        <View style={{ height: 32, marginBottom: 8 }}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <HorizontalFilterRow>
+          <Pressable
+            onPress={() => updateFilters({ category: '', page: 1 })}
+            style={[s.chip, { backgroundColor: theme.backgroundElement }, !filters.category && s.act]}>
+            <ThemedText type="small">All Categories</ThemedText>
+          </Pressable>
+          {CATS.map((cat) => (
             <Pressable
-              onPress={() => updateFilters({ category: '', page: 1 })}
-              style={[s.chip, { backgroundColor: theme.backgroundElement }, !filters.category && s.act]}>
-              <ThemedText type="small">All Categories</ThemedText>
+              key={cat}
+              onPress={() => updateFilters({ category: cat, page: 1 })}
+              style={[s.chip, { backgroundColor: theme.backgroundElement }, filters.category === cat && s.act]}>
+              <ThemedText type="small">{cat}</ThemedText>
             </Pressable>
-            {CATS.map((cat) => (
-              <Pressable
-                key={cat}
-                onPress={() => updateFilters({ category: cat, page: 1 })}
-                style={[s.chip, { backgroundColor: theme.backgroundElement }, filters.category === cat && s.act]}>
-                <ThemedText type="small">{cat}</ThemedText>
-              </Pressable>
-            ))}
-          </ScrollView>
-        </View>
+          ))}
+        </HorizontalFilterRow>
 
         {/* Price Filters */}
-        <View style={{ height: 32, marginBottom: 8 }}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {PRICES.map((pr) => {
-              const isAct = filters.minPrice === pr.min && filters.maxPrice === pr.max;
-              return (
-                <Pressable
-                  key={pr.label}
-                  onPress={() => updateFilters({ minPrice: pr.min, maxPrice: pr.max, page: 1 })}
-                  style={[s.chip, { backgroundColor: theme.backgroundElement }, isAct && s.act]}>
-                  <ThemedText type="small">{pr.label}</ThemedText>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        </View>
+        <HorizontalFilterRow>
+          {PRICES.map((pr) => {
+            const isAct = filters.minPrice === pr.min && filters.maxPrice === pr.max;
+            return (
+              <Pressable
+                key={pr.label}
+                onPress={() => updateFilters({ minPrice: pr.min, maxPrice: pr.max, page: 1 })}
+                style={[s.chip, { backgroundColor: theme.backgroundElement }, isAct && s.act]}>
+                <ThemedText type="small">{pr.label}</ThemedText>
+              </Pressable>
+            );
+          })}
+        </HorizontalFilterRow>
 
         {/* Rating Filters */}
-        <View style={{ height: 32, marginBottom: 8 }}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {RATINGS.map((rt) => {
-              const isAct = filters.minRating === rt.val;
-              return (
-                <Pressable
-                  key={rt.label}
-                  onPress={() => updateFilters({ minRating: rt.val, page: 1 })}
-                  style={[s.chip, { backgroundColor: theme.backgroundElement }, isAct && s.act]}>
-                  <ThemedText type="small">{rt.label}</ThemedText>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        </View>
+        <HorizontalFilterRow>
+          {RATINGS.map((rt) => {
+            const isAct = filters.minRating === rt.val;
+            return (
+              <Pressable
+                key={rt.label}
+                onPress={() => updateFilters({ minRating: rt.val, page: 1 })}
+                style={[s.chip, { backgroundColor: theme.backgroundElement }, isAct && s.act]}>
+                <ThemedText type="small">{rt.label}</ThemedText>
+              </Pressable>
+            );
+          })}
+        </HorizontalFilterRow>
 
         {/* Sorting */}
         <View style={s.sortRow}>
@@ -252,6 +249,7 @@ export default function ShopScreen() {
           <FlatList
             data={products}
             keyExtractor={(item) => item.id}
+            contentContainerStyle={{ paddingBottom: 96 }}
             renderItem={({ item }) => (
               <Pressable onPress={() => setSelectedProduct(item)}>
                 <ThemedView type="backgroundElement" style={s.card}>
@@ -282,17 +280,19 @@ export default function ShopScreen() {
           <Pressable
             disabled={page === 1}
             onPress={() => updateFilters({ page: page - 1 })}
-            style={[s.pageBtn, page === 1 && { opacity: 0.5 }]}>
-            <ThemedText type="smallBold">Prev</ThemedText>
+            accessibilityLabel="Previous page"
+            style={[s.pageBtn, { backgroundColor: theme.backgroundElement }, page === 1 && { opacity: 0.3 }]}>
+            <ChevronLeft size={16} color={theme.text} />
           </Pressable>
           <ThemedText type="small">
-            Page {page} / {totalPages}
+            {page} / {totalPages}
           </ThemedText>
           <Pressable
             disabled={page === totalPages}
             onPress={() => updateFilters({ page: page + 1 })}
-            style={[s.pageBtn, page === totalPages && { opacity: 0.5 }]}>
-            <ThemedText type="smallBold">Next</ThemedText>
+            accessibilityLabel="Next page"
+            style={[s.pageBtn, { backgroundColor: theme.backgroundElement }, page === totalPages && { opacity: 0.3 }]}>
+            <ChevronRight size={16} color={theme.text} />
           </Pressable>
         </View>
       </SafeAreaView>
@@ -302,7 +302,7 @@ export default function ShopScreen() {
 
 const s = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: Spacing.four, justifyContent: 'center', flexDirection: 'row' },
-  safe: { flex: 1, maxWidth: MaxContentWidth, paddingBottom: Spacing.three },
+  safe: { flex: 1, maxWidth: MaxContentWidth, paddingBottom: 0 },
   topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 12 },
   cartIndicator: { backgroundColor: '#2ecc71', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6 },
   header: { flexDirection: 'row', gap: 8, marginBottom: 12 },
