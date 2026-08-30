@@ -20,7 +20,19 @@ function buildMetadata(totalCount: number, page: number, pageSize: number): Pagi
 
 export const productRepository = {
   async getProducts(query: ProductQuery): Promise<PaginatedResult<Product>> {
-    return apiClient.execute(`products?page=${query.page}`, () => {
+    const parts = [
+      `page=${query.page || 1}`,
+      `pageSize=${query.pageSize || 10}`,
+      query.search ? `search=${encodeURIComponent(query.search.trim())}` : '',
+      query.category ? `category=${encodeURIComponent(query.category)}` : '',
+      query.minPrice !== undefined ? `minPrice=${query.minPrice}` : '',
+      query.maxPrice !== undefined ? `maxPrice=${query.maxPrice}` : '',
+      query.minRating !== undefined ? `minRating=${query.minRating}` : '',
+      query.sort ? `sort=${query.sort}` : '',
+    ].filter(Boolean).sort().join('&');
+    const cacheKey = `products?${parts}`;
+
+    return apiClient.execute(cacheKey, () => {
       const page = query.page || 1;
       const pageSize = query.pageSize || 10;
 

@@ -36,6 +36,35 @@ describe('doctorRepository', () => {
         expect(descRating.items[i].rating).toBeLessThanOrEqual(descRating.items[i - 1].rating);
       }
     });
+
+    it('should maintain consistent metadata across pagination pages when filter is unchanged (prevent cache collision)', async () => {
+      // 1. Query page 1 without filters
+      const page1 = await doctorRepository.getDoctors({ page: 1, pageSize: 5 });
+      const totalCountRaw = page1.metadata.totalCount; // Should be 5000
+
+      // 2. Query page 1 with active specialty filter
+      const specPage1 = await doctorRepository.getDoctors({ page: 1, specialty: 'Dermatologist', pageSize: 5 });
+      const specTotalCount = specPage1.metadata.totalCount; // Should be filtered (~625)
+      expect(specTotalCount).toBeLessThan(totalCountRaw);
+
+      // 3. Query page 1 without filters again (should NOT hit the cached specialty page 1)
+      const page1Again = await doctorRepository.getDoctors({ page: 1, pageSize: 5 });
+      expect(page1Again.metadata.totalCount).toBe(totalCountRaw); // Should return 5000, not specTotalCount
+
+      // 4. Query page 2 without filters (should remain 5000)
+      const page2 = await doctorRepository.getDoctors({ page: 2, pageSize: 5 });
+      expect(page2.metadata.totalCount).toBe(totalCountRaw);
+      expect(page2.metadata.totalPages).toBe(1000);
+
+      // 5. Query page 1 with sorting changes and verify distinct cache entries
+      const page1Sorted = await doctorRepository.getDoctors({ page: 1, sort: 'fee_asc', pageSize: 5 });
+      expect(page1Sorted.metadata.totalCount).toBe(totalCountRaw);
+      expect(page1Sorted.items[0].id).not.toBe(page1Again.items[0].id);
+
+      // 6. Query page 1 with search changes and verify distinct cache entries
+      const page1Search = await doctorRepository.getDoctors({ page: 1, search: 'Sharma', pageSize: 5 });
+      expect(page1Search.metadata.totalCount).toBeLessThan(totalCountRaw);
+    });
   });
 
   describe('getDoctorById', () => {

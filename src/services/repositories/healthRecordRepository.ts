@@ -20,7 +20,19 @@ function buildMetadata(totalCount: number, page: number, pageSize: number): Pagi
 
 export const healthRecordRepository = {
   async getHealthRecords(query: HealthRecordQuery): Promise<PaginatedResult<HealthRecord>> {
-    return apiClient.execute(`healthRecords?page=${query.page}`, () => {
+    const parts = [
+      `page=${query.page || 1}`,
+      `pageSize=${query.pageSize || 10}`,
+      query.search ? `search=${encodeURIComponent(query.search.trim())}` : '',
+      query.type ? `type=${encodeURIComponent(query.type)}` : '',
+      query.tag ? `tag=${encodeURIComponent(query.tag)}` : '',
+      query.year !== undefined ? `year=${query.year}` : '',
+      query.month !== undefined ? `month=${query.month}` : '',
+      query.date ? `date=${encodeURIComponent(query.date)}` : '',
+    ].filter(Boolean).sort().join('&');
+    const cacheKey = `healthRecords?${parts}`;
+
+    return apiClient.execute(cacheKey, () => {
       const page = query.page || 1;
       const pageSize = query.pageSize || 10;
 

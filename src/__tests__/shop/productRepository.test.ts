@@ -62,6 +62,21 @@ describe('productRepository', () => {
         expect(descPrice.items[i].price).toBeLessThanOrEqual(descPrice.items[i - 1].price);
       }
     });
+
+    it('should maintain consistent metadata across pagination pages when filter is unchanged (prevent cache collision)', async () => {
+      const page1 = await productRepository.getProducts({ page: 1, pageSize: 5 });
+      const totalCountRaw = page1.metadata.totalCount; // Should be 20000
+
+      const catPage1 = await productRepository.getProducts({ page: 1, category: 'Wellness & Nutrition', pageSize: 5 });
+      const catTotalCount = catPage1.metadata.totalCount;
+      expect(catTotalCount).toBeLessThan(totalCountRaw);
+
+      const page1Again = await productRepository.getProducts({ page: 1, pageSize: 5 });
+      expect(page1Again.metadata.totalCount).toBe(totalCountRaw);
+
+      const page2 = await productRepository.getProducts({ page: 2, pageSize: 5 });
+      expect(page2.metadata.totalCount).toBe(totalCountRaw);
+    });
   });
 
   describe('getProductById', () => {

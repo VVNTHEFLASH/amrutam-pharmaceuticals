@@ -58,6 +58,21 @@ describe('healthRecordRepository', () => {
         expect(item.date).toBe('2025-06-15');
       });
     });
+
+    it('should maintain consistent metadata across pagination pages when filter is unchanged (prevent cache collision)', async () => {
+      const page1 = await healthRecordRepository.getHealthRecords({ page: 1, pageSize: 5 });
+      const totalCountRaw = page1.metadata.totalCount; // Should be 10000
+
+      const typePage1 = await healthRecordRepository.getHealthRecords({ page: 1, type: 'Diagnostic Report', pageSize: 5 });
+      const typeTotalCount = typePage1.metadata.totalCount;
+      expect(typeTotalCount).toBeLessThan(totalCountRaw);
+
+      const page1Again = await healthRecordRepository.getHealthRecords({ page: 1, pageSize: 5 });
+      expect(page1Again.metadata.totalCount).toBe(totalCountRaw);
+
+      const page2 = await healthRecordRepository.getHealthRecords({ page: 2, pageSize: 5 });
+      expect(page2.metadata.totalCount).toBe(totalCountRaw);
+    });
   });
 
   describe('getHealthRecordById', () => {

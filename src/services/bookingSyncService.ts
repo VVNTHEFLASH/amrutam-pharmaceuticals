@@ -1,5 +1,5 @@
 import { doctorRepository } from '@/services/repositories/doctorRepository';
-import { useClientStore } from '@/store/clientStore';
+import type { useClientStore as useClientStoreType } from '@/store/clientStore';
 import { Booking } from '@/types/domain';
 import { AppError } from '@/types/errors';
 
@@ -30,7 +30,9 @@ export const bookingSyncService = {
       return;
     }
 
-    const store = useClientStore.getState();
+    const store = (
+      require('@/store/clientStore').useClientStore as typeof useClientStoreType
+    ).getState();
     if (!store.isConnected) {
       console.log('[SyncService] disconnected, aborting sync');
       return;
@@ -127,7 +129,9 @@ export const bookingSyncService = {
         }
       }
 
-      const updatedQueue = useClientStore.getState().bookingQueue;
+      const updatedQueue = (
+        require('@/store/clientStore').useClientStore as typeof useClientStoreType
+      ).getState().bookingQueue;
       const hasFailed = updatedQueue.some((b) => b.status === 'failed');
       const hasPending = updatedQueue.some((b) => b.status === 'pending');
 
