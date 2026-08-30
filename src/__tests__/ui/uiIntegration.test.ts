@@ -126,4 +126,26 @@ describe('UI Integration Feature Hooks & Repositories', () => {
     await hookResult.bookSlot(doc, '2026-08-30', '12:00 PM');
     expect(mockStoreState.bookingQueue.length).toBe(1);
   });
+
+  it('should fail booking if slot is expired and not enqueue it', async () => {
+    const doc = { id: 'doc-1', name: 'Dr. John' } as any;
+    (doctorRepository.getAvailableSlots as jest.Mock).mockResolvedValue([{ time: '09:00 AM', isAvailable: true }]);
+
+    mockHookIndex = 0;
+    const hookResult = useConsultation();
+
+    await expect(hookResult.bookSlot(doc, '2026-08-30', '09:00 AM')).rejects.toThrow('Selected slot has expired.');
+    expect(mockStoreState.bookingQueue.length).toBe(0);
+  });
+
+  it('should succeed booking if slot is in the future', async () => {
+    const doc = { id: 'doc-1', name: 'Dr. John' } as any;
+    (doctorRepository.getAvailableSlots as jest.Mock).mockResolvedValue([{ time: '12:00 PM', isAvailable: true }]);
+
+    mockHookIndex = 0;
+    const hookResult = useConsultation();
+
+    await hookResult.bookSlot(doc, '2026-08-30', '12:00 PM');
+    expect(mockStoreState.bookingQueue.length).toBe(1);
+  });
 });

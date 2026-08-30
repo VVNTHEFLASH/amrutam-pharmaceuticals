@@ -64,7 +64,7 @@ export function ConnectionBanner() {
     status = 'Syncing...';
     desc = 'Synchronizing queue updates with remote Supabase servers...';
     showLoader = true;
-  } else if (syncStatus === 'failed' || (isConnected && totalPending > 0)) {
+  } else if (totalPending > 0) {
     bg = theme.backgroundElement === '#F0F0F3' ? '#FFF9E6' : '#3B301A';
     textCol = theme.text;
     status = 'Warning / Sync Failed';

@@ -362,6 +362,7 @@ describe('bookingSyncService Queue synchronization system', () => {
         category: 'wellness',
         rating: 4.5,
         stock: 10,
+        description: 'Mock Description',
       };
       useClientStore.getState().addToCart(mockProduct, 2);
 

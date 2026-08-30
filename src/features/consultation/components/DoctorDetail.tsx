@@ -11,8 +11,8 @@ import { Booking, Doctor } from '@/types/domain';
 import { useTheme } from '@/hooks/use-theme';
 
 import { isSlotExpired, parseSlotDateTime } from '../utils/dateUtils';
+import { timeProvider } from '@/services/timeProvider';
 
-const DEFAULT_NOW = new Date(2026, 7, 30, 11, 0);
 
 interface DoctorDetailProps {
   doctor: Doctor;
@@ -170,7 +170,7 @@ export function DoctorDetail({
         <ScrollView contentContainerStyle={styles.slotsGrid}>
           {slots.map((slot) => {
             const slotDate = parseSlotDateTime(selectedDate, slot.time);
-            const isExpired = isSlotExpired(selectedDate, slot.time, DEFAULT_NOW);
+            const isExpired = isSlotExpired(selectedDate, slot.time, timeProvider.getCurrentTime());
             const isDirectlyBooked = bookingQueue.some(
               (b) =>
                 b.doctorId === doctor.id &&

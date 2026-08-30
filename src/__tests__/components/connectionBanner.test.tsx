@@ -107,8 +107,8 @@ describe('ConnectionBanner Component', () => {
     mockStoreState.isConnected = false;
     const result = ConnectionBanner();
     expect(result).not.toBeNull();
-    expect(result.props.accessibilityLabel).toContain('Offline');
-    expect(result.props.accessibilityLabel).toContain('Using cached database offline');
+    expect(result!.props.accessibilityLabel).toContain('Offline');
+    expect(result!.props.accessibilityLabel).toContain('Using cached database offline');
   });
 
   it('should show count of pending modifications when offline with waiting queue items', () => {
@@ -119,8 +119,8 @@ describe('ConnectionBanner Component', () => {
 
     const result = ConnectionBanner();
     expect(result).not.toBeNull();
-    expect(result.props.accessibilityLabel).toContain('Offline');
-    expect(result.props.accessibilityLabel).toContain('3 changes waiting to sync');
+    expect(result!.props.accessibilityLabel).toContain('Offline');
+    expect(result!.props.accessibilityLabel).toContain('3 changes waiting to sync');
   });
 
   it('should show syncing status when online and syncStatus is syncing', () => {
@@ -128,7 +128,7 @@ describe('ConnectionBanner Component', () => {
     mockStoreState.syncStatus = 'syncing';
     const result = ConnectionBanner();
     expect(result).not.toBeNull();
-    expect(result.props.accessibilityLabel).toContain('Syncing...');
+    expect(result!.props.accessibilityLabel).toContain('Syncing...');
   });
 
   it('should show manual sync button when online and syncStatus is failed or pending items exist', () => {
@@ -138,10 +138,10 @@ describe('ConnectionBanner Component', () => {
 
     const result = ConnectionBanner();
     expect(result).not.toBeNull();
-    expect(result.props.accessibilityLabel).toContain('Warning / Sync Failed');
+    expect(result!.props.accessibilityLabel).toContain('Warning / Sync Failed');
 
     // Verify button exists in components
-    const row = result.props.children;
+    const row = result!.props.children;
     const button = row.props.children[1];
     expect(button).not.toBeNull();
     expect(button.props.accessibilityLabel).toBe('Sync Now');
@@ -153,7 +153,7 @@ describe('ConnectionBanner Component', () => {
     mockStoreState.bookingQueue = [{ id: 'bk-1', status: 'pending' }];
 
     const result = ConnectionBanner();
-    const row = result.props.children;
+    const row = result!.props.children;
     const button = row.props.children[1];
 
     // Trigger press
@@ -161,6 +161,69 @@ describe('ConnectionBanner Component', () => {
 
     expect(bookingSyncService.sync).toHaveBeenCalledTimes(1);
     expect(userSyncService.syncAll).toHaveBeenCalledTimes(1);
+  });
+
+  it('should not render Sync Now when pendingCount === 0', () => {
+    mockStoreState.isConnected = true;
+    mockStoreState.syncStatus = 'failed';
+    mockStoreState.bookingQueue = [];
+    mockStoreState.wishlistQueue = [];
+    mockStoreState.cartQueue = [];
+
+    const result = ConnectionBanner();
+    expect(result).toBeNull();
+  });
+
+  it('should render Sync Now when pendingCount > 0 and online', () => {
+    mockStoreState.isConnected = true;
+    mockStoreState.syncStatus = 'failed';
+    mockStoreState.bookingQueue = [{ id: 'bk-1', status: 'pending' }];
+
+    const result = ConnectionBanner();
+    expect(result).not.toBeNull();
+    const row = result!.props.children;
+    const button = row.props.children[1];
+    expect(button).not.toBeNull();
+    expect(button.props.accessibilityLabel).toBe('Sync Now');
+  });
+
+  it('should not render Sync Now when offline', () => {
+    mockStoreState.isConnected = false;
+    mockStoreState.syncStatus = 'failed';
+    mockStoreState.bookingQueue = [{ id: 'bk-1', status: 'pending' }];
+
+    const result = ConnectionBanner();
+    expect(result).not.toBeNull();
+    const row = result!.props.children;
+    const button = row.props.children[1];
+    expect(button).toBeFalsy();
+  });
+
+  it('should make Sync Now not actionable when syncing', () => {
+    mockStoreState.isConnected = true;
+    mockStoreState.syncStatus = 'syncing';
+    mockStoreState.bookingQueue = [{ id: 'bk-1', status: 'pending' }];
+
+    const result = ConnectionBanner();
+    expect(result).not.toBeNull();
+    const row = result!.props.children;
+    const button = row.props.children[1];
+    expect(button).toBeFalsy();
+  });
+
+  it('should automatically hide Sync Now after queues become empty', () => {
+    mockStoreState.isConnected = true;
+    mockStoreState.syncStatus = 'failed';
+    mockStoreState.bookingQueue = [{ id: 'bk-1', status: 'pending' }];
+    let result = ConnectionBanner();
+    expect(result).not.toBeNull();
+    let row = result!.props.children;
+    let button = row.props.children[1];
+    expect(button).not.toBeNull();
+
+    mockStoreState.bookingQueue = [];
+    result = ConnectionBanner();
+    expect(result).toBeNull();
   });
 });
 

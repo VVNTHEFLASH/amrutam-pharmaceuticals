@@ -1,5 +1,8 @@
-import { execSync } from 'child_process';
-import * as path from 'path';
+declare const require: any;
+declare const __dirname: string;
+
+const { execSync } = require('child_process');
+const path = require('path');
 
 describe('Supabase Row-Level Security (RLS) policies', () => {
   it('should enforce proper tenant segregation and pass all security assertions', () => {
