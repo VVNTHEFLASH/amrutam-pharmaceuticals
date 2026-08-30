@@ -1,4 +1,6 @@
+import { connectivityService } from '../connectivity';
 import { AppError } from '@/types/errors';
+import { apiCache } from './apiCache';
 
 export type ApiMockMode = 'SUCCESS' | 'NETWORK_FAILURE' | 'TIMEOUT' | 'MALFORMED' | 'SESSION_EXPIRED';
 
@@ -27,15 +29,33 @@ export const apiMockConfig = new ApiMockConfig();
 
 export const apiClient = {
   async execute<T>(endpoint: string, queryFn: () => T): Promise<T> {
+    const isConnected = connectivityService.getIsConnected();
     const mode = apiMockConfig.getMode();
     const latency = apiMockConfig.getLatency();
 
-    // 1. Latency simulation
+    // 1. Connectivity check
+    if (!isConnected) {
+      const cached = await apiCache.get<T>(endpoint);
+      if (cached) {
+        return cached.value;
+      }
+      throw new AppError('NETWORK_FAILURE', `No network connection and cache miss for: ${endpoint}`);
+    }
+
+    // 2. Fresh cache check under SUCCESS mode
+    if (mode === 'SUCCESS') {
+      const cached = await apiCache.get<T>(endpoint);
+      if (cached && apiCache.isFresh(cached)) {
+        return cached.value;
+      }
+    }
+
+    // 3. Latency simulation
     if (latency > 0) {
       await new Promise((resolve) => setTimeout(resolve, latency));
     }
 
-    // 2. Deterministic mock failure modes
+    // 4. Deterministic mock failure modes
     switch (mode) {
       case 'NETWORK_FAILURE':
         throw new AppError('NETWORK_FAILURE', `API Network failure on route: ${endpoint}`);
@@ -55,16 +75,19 @@ export const apiClient = {
       if (data === undefined || data === null) {
         throw new Error('Empty response');
       }
+      // Write to cache
+      await apiCache.set(endpoint, data);
       return data;
     } catch (error) {
       if (error instanceof AppError) {
         throw error;
       }
       throw new AppError(
-        'UNKNOWN_FAILURE',
+         'UNKNOWN_FAILURE',
         `API request failed with error: ${error instanceof Error ? error.message : String(error)}`,
         error
       );
     }
   },
 };
+

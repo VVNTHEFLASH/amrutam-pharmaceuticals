@@ -36,6 +36,10 @@ class ConnectivityService {
     return this.isConnected;
   }
 
+  public forceConnected(connected: boolean): void {
+    this.updateState(connected);
+  }
+
   public subscribe(callback: ConnectivityCallback): () => void {
     this.listeners.add(callback);
     // Call back immediately with current state

@@ -42,6 +42,9 @@ export interface Booking {
   notes?: string;
   status: 'pending' | 'synchronized' | 'failed';
   createdAt: string;
+  attempts?: number;
+  errorReason?: string;
+  mutationType?: 'CREATE' | 'CANCEL';
 }
 
 export interface CartItem {

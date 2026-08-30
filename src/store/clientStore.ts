@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
+import { bookingSyncService } from '@/services/bookingSyncService';
 import { connectivityService } from '@/services/connectivity';
 import { Booking, CartItem, Product } from '@/types/domain';
 
@@ -10,6 +11,7 @@ export interface ClientState {
   wishlist: string[]; // Array of product IDs
   bookingQueue: Booking[];
   isConnected: boolean;
+  syncStatus: 'idle' | 'syncing' | 'completed' | 'failed';
 }
 
 export interface ClientActions {
@@ -29,9 +31,11 @@ export interface ClientActions {
   removeQueuedBooking: (bookingId: string) => void;
   markBookingSynced: (bookingId: string) => void;
   removeSyncedBookings: () => void;
+  updateBookingInQueue: (bookingId: string, updates: Partial<Booking>) => void;
 
   // Connectivity Actions
   setConnected: (isConnected: boolean) => void;
+  setSyncStatus: (status: 'idle' | 'syncing' | 'completed' | 'failed') => void;
 }
 
 export type ClientStore = ClientState & ClientActions;
@@ -44,6 +48,7 @@ export const useClientStore = create<ClientStore>()(
       wishlist: [],
       bookingQueue: [],
       isConnected: connectivityService.getIsConnected(),
+      syncStatus: 'idle',
 
       // Cart Actions
       addToCart: (product, quantity = 1) =>
@@ -130,8 +135,16 @@ export const useClientStore = create<ClientStore>()(
           bookingQueue: state.bookingQueue.filter((booking) => booking.status !== 'synchronized'),
         })),
 
+      updateBookingInQueue: (bookingId, updates) =>
+        set((state) => ({
+          bookingQueue: state.bookingQueue.map((booking) =>
+            booking.id === bookingId ? { ...booking, ...updates } : booking
+          ),
+        })),
+
       // Connectivity Actions
       setConnected: (isConnected) => set({ isConnected }),
+      setSyncStatus: (syncStatus) => set({ syncStatus }),
     }),
     {
       name: 'amrutam-client-store',
@@ -147,5 +160,11 @@ export const useClientStore = create<ClientStore>()(
 
 // Subscribe the store status directly to the connectivity service changes
 connectivityService.subscribe((isConnected) => {
-  useClientStore.getState().setConnected(isConnected);
+  const store = useClientStore.getState();
+  const wasConnected = store.isConnected;
+  store.setConnected(isConnected);
+
+  if (isConnected && !wasConnected) {
+    bookingSyncService.sync().catch(console.error);
+  }
 });

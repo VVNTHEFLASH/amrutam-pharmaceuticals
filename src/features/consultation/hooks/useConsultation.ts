@@ -120,9 +120,20 @@ export function useConsultation() {
         throw new AppError('BOOKING_CONFLICT', 'You already booked this slot.');
       }
 
-      const liveSlots = await doctorRepository.getAvailableSlots(doctor.id, dateStr);
-      const ms = liveSlots.find((s) => s.time === slotTime);
-      if (!ms || !ms.isAvailable) {
+      let ms = null;
+      try {
+        const liveSlots = await doctorRepository.getAvailableSlots(doctor.id, dateStr);
+        ms = liveSlots.find((s) => s.time === slotTime);
+      } catch (err: any) {
+        // Bypassing network or timeout errors while offline
+        if (err instanceof AppError && (err.code === 'NETWORK_FAILURE' || err.code === 'TIMEOUT')) {
+          // Serves offline queueing
+        } else {
+          throw err;
+        }
+      }
+
+      if (ms && !ms.isAvailable) {
         throw new AppError('BOOKING_CONFLICT', 'Slot no longer available.');
       }
 
@@ -136,7 +147,11 @@ export function useConsultation() {
         createdAt: NOW.toISOString(),
       });
 
-      await fetchDoctorSlots(doctor.id, dateStr);
+      try {
+        await fetchDoctorSlots(doctor.id, dateStr);
+      } catch (err) {
+        // Silent catch for offline refresh failures
+      }
     },
     [bookingQueue, enqueueBooking, fetchDoctorSlots]
   );
