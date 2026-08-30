@@ -4,9 +4,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { CartView } from '@/features/shop/components/CartView';
 import { ProductDetail } from '@/features/shop/components/ProductDetail';
+import { useTheme } from '@/hooks/use-theme';
 import { useShop } from '@/features/shop/hooks/useShop';
 import { useClientStore } from '@/store/clientStore';
 import { Product } from '@/types/domain';
@@ -49,6 +50,7 @@ export default function ShopScreen() {
     retry,
   } = useShop();
 
+  const theme = useTheme();
   const cart = useClientStore((s) => s.cart);
   const addToCart = useClientStore((s) => s.addToCart);
   const updateCartQuantity = useClientStore((s) => s.updateCartQuantity);
@@ -158,14 +160,14 @@ export default function ShopScreen() {
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <Pressable
               onPress={() => updateFilters({ category: '', page: 1 })}
-              style={[s.chip, !filters.category && s.act]}>
+              style={[s.chip, { backgroundColor: theme.backgroundElement }, !filters.category && s.act]}>
               <ThemedText type="small">All Categories</ThemedText>
             </Pressable>
             {CATS.map((cat) => (
               <Pressable
                 key={cat}
                 onPress={() => updateFilters({ category: cat, page: 1 })}
-                style={[s.chip, filters.category === cat && s.act]}>
+                style={[s.chip, { backgroundColor: theme.backgroundElement }, filters.category === cat && s.act]}>
                 <ThemedText type="small">{cat}</ThemedText>
               </Pressable>
             ))}
@@ -181,7 +183,7 @@ export default function ShopScreen() {
                 <Pressable
                   key={pr.label}
                   onPress={() => updateFilters({ minPrice: pr.min, maxPrice: pr.max, page: 1 })}
-                  style={[s.chip, isAct && s.act]}>
+                  style={[s.chip, { backgroundColor: theme.backgroundElement }, isAct && s.act]}>
                   <ThemedText type="small">{pr.label}</ThemedText>
                 </Pressable>
               );
@@ -198,7 +200,7 @@ export default function ShopScreen() {
                 <Pressable
                   key={rt.label}
                   onPress={() => updateFilters({ minRating: rt.val, page: 1 })}
-                  style={[s.chip, isAct && s.act]}>
+                  style={[s.chip, { backgroundColor: theme.backgroundElement }, isAct && s.act]}>
                   <ThemedText type="small">{rt.label}</ThemedText>
                 </Pressable>
               );
@@ -212,7 +214,7 @@ export default function ShopScreen() {
             <Pressable
               key={opt.val}
               onPress={() => updateFilters({ sort: opt.val, page: 1 })}
-              style={[s.sort, filters.sort === opt.val && s.actSort]}>
+              style={[s.sort, { backgroundColor: theme.backgroundElement }, filters.sort === opt.val && { backgroundColor: theme.backgroundSelected }]}>
               <ThemedText type="small">{opt.label}</ThemedText>
             </Pressable>
           ))}
@@ -300,7 +302,7 @@ export default function ShopScreen() {
 
 const s = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: Spacing.four, justifyContent: 'center', flexDirection: 'row' },
-  safe: { flex: 1, maxWidth: MaxContentWidth, paddingBottom: BottomTabInset + Spacing.three },
+  safe: { flex: 1, maxWidth: MaxContentWidth, paddingBottom: Spacing.three },
   topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 12 },
   cartIndicator: { backgroundColor: '#2ecc71', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6 },
   header: { flexDirection: 'row', gap: 8, marginBottom: 12 },

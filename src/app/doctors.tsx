@@ -4,9 +4,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { DoctorDetail } from '@/features/consultation/components/DoctorDetail';
 import { useConsultation } from '@/features/consultation/hooks/useConsultation';
+import { useTheme } from '@/hooks/use-theme';
 import { useClientStore } from '@/store/clientStore';
 import { Doctor } from '@/types/domain';
 
@@ -35,6 +36,7 @@ export default function DoctorsScreen() {
     bookSlot,
   } = useConsultation();
   const queue = useClientStore((s) => s.bookingQueue);
+  const theme = useTheme();
   const [localSearch, setLocalSearch] = useState(search);
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -115,14 +117,14 @@ export default function DoctorsScreen() {
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <Pressable
               onPress={() => setFilters({ specialty: '', page: 1 })}
-              style={[s.chip, !specialty && s.act]}>
+              style={[s.chip, { backgroundColor: theme.backgroundElement }, !specialty && s.act]}>
               <ThemedText type="small">All Specialties</ThemedText>
             </Pressable>
             {SP.map((sp) => (
               <Pressable
                 key={sp}
                 onPress={() => setFilters({ specialty: sp, page: 1 })}
-                style={[s.chip, specialty === sp && s.act]}>
+                style={[s.chip, { backgroundColor: theme.backgroundElement }, specialty === sp && s.act]}>
                 <ThemedText type="small">{sp}</ThemedText>
               </Pressable>
             ))}
@@ -133,14 +135,14 @@ export default function DoctorsScreen() {
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <Pressable
               onPress={() => setFilters({ availability: '', page: 1 })}
-              style={[s.chip, !availability && s.act]}>
+              style={[s.chip, { backgroundColor: theme.backgroundElement }, !availability && s.act]}>
               <ThemedText type="small">Any Day</ThemedText>
             </Pressable>
             {DY.map((dy) => (
               <Pressable
                 key={dy}
                 onPress={() => setFilters({ availability: dy, page: 1 })}
-                style={[s.chip, availability === dy && s.act]}>
+                style={[s.chip, { backgroundColor: theme.backgroundElement }, availability === dy && s.act]}>
                 <ThemedText type="small">{dy}</ThemedText>
               </Pressable>
             ))}
@@ -156,7 +158,7 @@ export default function DoctorsScreen() {
             <Pressable
               key={opt.val}
               onPress={() => setFilters({ sort: opt.val, page: 1 })}
-              style={[s.sort, sort === opt.val && s.actSort]}>
+              style={[s.sort, { backgroundColor: theme.backgroundElement }, sort === opt.val && { backgroundColor: theme.backgroundSelected }]}>
               <ThemedText type="small">{opt.label}</ThemedText>
             </Pressable>
           ))}
@@ -198,7 +200,7 @@ export default function DoctorsScreen() {
 
 const s = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: Spacing.four, justifyContent: 'center', flexDirection: 'row' },
-  safe: { flex: 1, maxWidth: MaxContentWidth, paddingBottom: BottomTabInset + Spacing.three },
+  safe: { flex: 1, maxWidth: MaxContentWidth, paddingBottom: Spacing.three },
   header: { flexDirection: 'row', gap: 8, marginVertical: 12 },
   input: {
     flex: 1,

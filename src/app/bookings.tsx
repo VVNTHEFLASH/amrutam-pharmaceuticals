@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useConsultation } from '@/features/consultation/hooks/useConsultation';
 import { useClientStore } from '@/store/clientStore';
 
@@ -103,7 +103,7 @@ export default function BookingsScreen() {
 
 const s = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: Spacing.four, justifyContent: 'center', flexDirection: 'row' },
-  safe: { flex: 1, maxWidth: MaxContentWidth, paddingBottom: BottomTabInset + Spacing.three },
+  safe: { flex: 1, maxWidth: MaxContentWidth, paddingBottom: Spacing.three },
   title: { marginVertical: Spacing.three },
   listContent: { gap: Spacing.three },
   card: { padding: Spacing.three, borderRadius: Spacing.two, gap: Spacing.one },

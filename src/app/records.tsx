@@ -4,9 +4,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { RecordDetail } from '@/features/records/components/RecordDetail';
 import { useRecords } from '@/features/records/hooks/useRecords';
+import { useTheme } from '@/hooks/use-theme';
 import { HealthRecordType } from '@/types/api';
 import { HealthRecord } from '@/types/domain';
 
@@ -41,6 +42,8 @@ export default function RecordsScreen() {
     resetFilters,
     retry,
   } = useRecords();
+
+  const theme = useTheme();
 
   const [selectedRecord, setSelectedRecord] = useState<HealthRecord | null>(null);
   const [localSearch, setLocalSearch] = useState(filters.search);
@@ -97,14 +100,14 @@ export default function RecordsScreen() {
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <Pressable
               onPress={() => updateFilters({ type: undefined, page: 1 })}
-              style={[s.chip, !filters.type && s.act]}>
+              style={[s.chip, { backgroundColor: theme.backgroundElement }, !filters.type && s.act]}>
               <ThemedText type="small">All Types</ThemedText>
             </Pressable>
             {TYPES.map((type) => (
               <Pressable
                 key={type}
                 onPress={() => updateFilters({ type, page: 1 })}
-                style={[s.chip, filters.type === type && s.act]}>
+                style={[s.chip, { backgroundColor: theme.backgroundElement }, filters.type === type && s.act]}>
                 <ThemedText type="small">{type}</ThemedText>
               </Pressable>
             ))}
@@ -116,14 +119,14 @@ export default function RecordsScreen() {
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <Pressable
               onPress={() => updateFilters({ tag: '', page: 1 })}
-              style={[s.chip, !filters.tag && s.act]}>
+              style={[s.chip, { backgroundColor: theme.backgroundElement }, !filters.tag && s.act]}>
               <ThemedText type="small">All Tags</ThemedText>
             </Pressable>
             {TAGS.map((tag) => (
               <Pressable
                 key={tag}
                 onPress={() => updateFilters({ tag, page: 1 })}
-                style={[s.chip, filters.tag === tag && s.act]}>
+                style={[s.chip, { backgroundColor: theme.backgroundElement }, filters.tag === tag && s.act]}>
                 <ThemedText type="small">{tag}</ThemedText>
               </Pressable>
             ))}
@@ -135,14 +138,14 @@ export default function RecordsScreen() {
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <Pressable
               onPress={() => updateFilters({ year: undefined, page: 1 })}
-              style={[s.chip, filters.year === undefined && s.act]}>
+              style={[s.chip, { backgroundColor: theme.backgroundElement }, filters.year === undefined && s.act]}>
               <ThemedText type="small">All Years</ThemedText>
             </Pressable>
             {YEARS.map((yr) => (
               <Pressable
                 key={yr}
                 onPress={() => updateFilters({ year: yr, page: 1 })}
-                style={[s.chip, filters.year === yr && s.act]}>
+                style={[s.chip, { backgroundColor: theme.backgroundElement }, filters.year === yr && s.act]}>
                 <ThemedText type="small">{yr}</ThemedText>
               </Pressable>
             ))}
@@ -154,14 +157,14 @@ export default function RecordsScreen() {
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <Pressable
               onPress={() => updateFilters({ month: undefined, page: 1 })}
-              style={[s.chip, filters.month === undefined && s.act]}>
+              style={[s.chip, { backgroundColor: theme.backgroundElement }, filters.month === undefined && s.act]}>
               <ThemedText type="small">All Months</ThemedText>
             </Pressable>
             {MONTHS.map((mn) => (
               <Pressable
                 key={mn.val}
                 onPress={() => updateFilters({ month: mn.val, page: 1 })}
-                style={[s.chip, filters.month === mn.val && s.act]}>
+                style={[s.chip, { backgroundColor: theme.backgroundElement }, filters.month === mn.val && s.act]}>
                 <ThemedText type="small">{mn.label}</ThemedText>
               </Pressable>
             ))}
@@ -266,7 +269,7 @@ export default function RecordsScreen() {
 
 const s = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: Spacing.four, justifyContent: 'center', flexDirection: 'row' },
-  safe: { flex: 1, maxWidth: MaxContentWidth, paddingBottom: BottomTabInset + Spacing.three },
+  safe: { flex: 1, maxWidth: MaxContentWidth, paddingBottom: Spacing.three },
   topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 12 },
   resetBtn: { paddingVertical: Spacing.one },
   header: { flexDirection: 'row', gap: 8, marginBottom: 12 },
