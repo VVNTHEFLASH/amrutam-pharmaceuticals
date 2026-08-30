@@ -76,3 +76,60 @@ CREATE INDEX idx_products_rating ON public.products (rating DESC);
 CREATE INDEX idx_health_records_type ON public.health_records (type);
 CREATE INDEX idx_health_records_date ON public.health_records (date DESC);
 CREATE INDEX idx_health_records_tags ON public.health_records USING gin (tags);
+
+-- 7. Create Profiles Table & Security Constraints
+CREATE TABLE public.profiles (
+    id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    full_name text,
+    phone text,
+    avatar_url text,
+    created_at timestamptz DEFAULT now() NOT NULL,
+    updated_at timestamptz DEFAULT now() NOT NULL
+);
+
+-- Enable Row-Level Security
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+
+-- Profiles SELECT Policy
+CREATE POLICY "Allow users to read their own profile" 
+    ON public.profiles 
+    FOR SELECT 
+    TO authenticated 
+    USING (auth.uid() = id);
+
+-- Profiles UPDATE Policy
+CREATE POLICY "Allow users to update their own profile" 
+    ON public.profiles 
+    FOR UPDATE 
+    TO authenticated 
+    USING (auth.uid() = id)
+    WITH CHECK (auth.uid() = id);
+
+-- Profiles INSERT Policy (Fallback in case of direct creations)
+CREATE POLICY "Allow users to insert their own profile" 
+    ON public.profiles 
+    FOR INSERT 
+    TO authenticated 
+    WITH CHECK (auth.uid() = id);
+
+-- Trigger to automatically create profile record when auth.users is created
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.profiles (id, full_name, phone, avatar_url)
+  VALUES (
+    new.id,
+    COALESCE(new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'fullName'),
+    new.raw_user_meta_data->>'phone',
+    COALESCE(new.raw_user_meta_data->>'avatar_url', new.raw_user_meta_data->>'avatarUrl')
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Bind the trigger function
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+

@@ -1,6 +1,6 @@
 import { Colors } from '@/constants/theme';
 import { Tabs } from 'expo-router';
-import { Calendar, ClipboardList, ShoppingBag, Stethoscope } from 'lucide-react-native';
+import { Calendar, ClipboardList, ShoppingBag, Stethoscope, User } from 'lucide-react-native';
 import { Platform, useColorScheme } from 'react-native';
 
 export default function AppTabs() {
@@ -62,6 +62,13 @@ export default function AppTabs() {
         options={{
           title: 'Records',
           tabBarIcon: ({ color, size }) => <ClipboardList color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
         }}
       />
       {/* Hide root entry index route since it redirects to /doctors */}

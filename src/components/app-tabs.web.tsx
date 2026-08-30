@@ -8,7 +8,7 @@ import {
 } from 'expo-router/ui';
 import { SymbolView } from 'expo-symbols';
 import { Pressable, useColorScheme, View, StyleSheet } from 'react-native';
-import { Stethoscope, ShoppingBag, Calendar, ClipboardList } from 'lucide-react-native';
+import { Stethoscope, ShoppingBag, Calendar, ClipboardList, User } from 'lucide-react-native';
 
 import { ExternalLink } from './external-link';
 import { ThemedText } from './themed-text';
@@ -33,6 +33,9 @@ export default function AppTabs() {
           </TabTrigger>
           <TabTrigger name="records" href="/records" asChild>
             <TabButton icon={ClipboardList}>Records</TabButton>
+          </TabTrigger>
+          <TabTrigger name="profile" href="/profile" asChild>
+            <TabButton icon={User}>Profile</TabButton>
           </TabTrigger>
         </CustomTabList>
       </TabList>

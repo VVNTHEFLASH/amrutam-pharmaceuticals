@@ -53,3 +53,13 @@ export interface CartItem {
   quantity: number;
 }
 
+export interface Profile {
+  id: string; // matches auth.users.id
+  fullName: string | null;
+  phone: string | null;
+  avatarUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+
