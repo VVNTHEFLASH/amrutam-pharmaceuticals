@@ -58,14 +58,24 @@ export default function DoctorsScreen() {
       onPress={() => {
         setSelectedDoctor(item);
         setMsg(null);
-      }}>
+      }}
+      accessibilityLabel={`Book appointment with ${item.name}`}
+      accessibilityRole="button"
+    >
       <ThemedView type="backgroundElement" style={s.card}>
-        <ThemedText type="default" style={{ fontWeight: '600' }}>
-          {item.name}
-        </ThemedText>
-        <ThemedText type="small" themeColor="textSecondary">
-          {item.specialty} • ₹{item.consultationFee}
-        </ThemedText>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <View style={{ flex: 1, paddingRight: Spacing.two }}>
+            <ThemedText type="default" style={{ fontWeight: '600' }}>
+              {item.name}
+            </ThemedText>
+            <ThemedText type="small" themeColor="textSecondary">
+              {item.specialty} • ₹{item.consultationFee}
+            </ThemedText>
+          </View>
+          <ThemedText type="default" style={{ fontWeight: '600', color: '#208AEF' }}>
+            Book
+          </ThemedText>
+        </View>
       </ThemedView>
     </Pressable>
   );
@@ -178,32 +188,47 @@ export default function DoctorsScreen() {
           />
         )}
 
-        <View style={s.paginationRow}>
-          <Pressable
-            disabled={page === 1}
-            onPress={() => setFilters({ page: page - 1 })}
-            accessibilityLabel="Previous page"
-            style={[s.pageBtn, { backgroundColor: theme.backgroundElement }, page === 1 && { opacity: 0.3 }]}>
-            <ChevronLeft size={16} color={theme.text} />
-          </Pressable>
-          <ThemedText type="small">
-            {page} / {totalPages}
-          </ThemedText>
-          <Pressable
-            disabled={page === totalPages}
-            onPress={() => setFilters({ page: page + 1 })}
-            accessibilityLabel="Next page"
-            style={[s.pageBtn, { backgroundColor: theme.backgroundElement }, page === totalPages && { opacity: 0.3 }]}>
-            <ChevronRight size={16} color={theme.text} />
-          </Pressable>
-        </View>
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <View style={s.paginationRow}>
+            <Pressable
+              disabled={page === 1}
+              onPress={() => setFilters({ page: page - 1 })}
+              accessibilityLabel="Previous page"
+              accessibilityRole="button"
+              style={[
+                s.pageBtn,
+                { backgroundColor: theme.backgroundElement, borderColor: theme.backgroundSelected },
+                page === 1 && { opacity: 0.3 },
+              ]}>
+              <ChevronLeft size={20} color={theme.text} />
+            </Pressable>
+            <View style={[s.pageIndicator, { backgroundColor: theme.backgroundElement, borderColor: theme.backgroundSelected }]}>
+              <ThemedText type="smallBold" style={{ color: theme.text }}>
+                {page} / {totalPages}
+              </ThemedText>
+            </View>
+            <Pressable
+              disabled={page === totalPages}
+              onPress={() => setFilters({ page: page + 1 })}
+              accessibilityLabel="Next page"
+              accessibilityRole="button"
+              style={[
+                s.pageBtn,
+                { backgroundColor: theme.backgroundElement, borderColor: theme.backgroundSelected },
+                page === totalPages && { opacity: 0.3 },
+              ]}>
+              <ChevronRight size={20} color={theme.text} />
+            </Pressable>
+          </View>
+        )}
       </SafeAreaView>
     </ThemedView>
   );
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: Spacing.four, justifyContent: 'center', flexDirection: 'row' },
+  container: { flex: 1, paddingHorizontal: Spacing.three, justifyContent: 'center', flexDirection: 'row' },
   safe: { flex: 1, maxWidth: MaxContentWidth, paddingBottom: 0 },
   header: { flexDirection: 'row', gap: 8, marginVertical: 12 },
   input: {
@@ -225,15 +250,27 @@ const s = StyleSheet.create({
   card: { padding: 12, borderRadius: 8, marginBottom: 8 },
   paginationRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 8,
+    gap: 16,
+    paddingVertical: 12,
+    marginBottom: Platform.OS === 'ios' ? 90 : 76,
   },
   pageBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pageIndicator: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minWidth: 80,
   },
 });

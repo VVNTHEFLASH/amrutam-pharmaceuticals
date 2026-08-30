@@ -64,7 +64,7 @@ export default function RecordsScreen() {
     return new Date(year, month - 1, day);
   };
 
-  const handleDateChange = (event: any, selectedDate?: Date) => {
+  const handleDateSelect = (event: any, selectedDate?: Date) => {
     setShowDatePicker(false);
     if (selectedDate) {
       const yyyy = selectedDate.getFullYear();
@@ -74,6 +74,10 @@ export default function RecordsScreen() {
       setLocalDate(formatted);
       updateFilters({ date: formatted, page: 1 });
     }
+  };
+
+  const handleDateDismiss = () => {
+    setShowDatePicker(false);
   };
 
   const handleResetAll = () => {
@@ -248,7 +252,9 @@ export default function RecordsScreen() {
               value={getPickerDate()}
               mode="date"
               display="default"
-              onChange={handleDateChange}
+              onValueChange={handleDateSelect}
+              onDismiss={handleDateDismiss}
+              onNeutralButtonPress={handleDateDismiss}
             />
           )}
         </View>
@@ -312,32 +318,46 @@ export default function RecordsScreen() {
         )}
 
         {/* Pagination */}
-        <View style={s.paginationRow}>
-          <Pressable
-            disabled={page === 1}
-            onPress={() => updateFilters({ page: page - 1 })}
-            accessibilityLabel="Previous page"
-            style={[s.pageBtn, { backgroundColor: theme.backgroundElement }, page === 1 && { opacity: 0.3 }]}>
-            <ChevronLeft size={16} color={theme.text} />
-          </Pressable>
-          <ThemedText type="small">
-            {page} / {totalPages}
-          </ThemedText>
-          <Pressable
-            disabled={page === totalPages}
-            onPress={() => updateFilters({ page: page + 1 })}
-            accessibilityLabel="Next page"
-            style={[s.pageBtn, { backgroundColor: theme.backgroundElement }, page === totalPages && { opacity: 0.3 }]}>
-            <ChevronRight size={16} color={theme.text} />
-          </Pressable>
-        </View>
+        {totalPages > 1 && (
+          <View style={s.paginationRow}>
+            <Pressable
+              disabled={page === 1}
+              onPress={() => updateFilters({ page: page - 1 })}
+              accessibilityLabel="Previous page"
+              accessibilityRole="button"
+              style={[
+                s.pageBtn,
+                { backgroundColor: theme.backgroundElement, borderColor: theme.backgroundSelected },
+                page === 1 && { opacity: 0.3 },
+              ]}>
+              <ChevronLeft size={20} color={theme.text} />
+            </Pressable>
+            <View style={[s.pageIndicator, { backgroundColor: theme.backgroundElement, borderColor: theme.backgroundSelected }]}>
+              <ThemedText type="smallBold" style={{ color: theme.text }}>
+                {page} / {totalPages}
+              </ThemedText>
+            </View>
+            <Pressable
+              disabled={page === totalPages}
+              onPress={() => updateFilters({ page: page + 1 })}
+              accessibilityLabel="Next page"
+              accessibilityRole="button"
+              style={[
+                s.pageBtn,
+                { backgroundColor: theme.backgroundElement, borderColor: theme.backgroundSelected },
+                page === totalPages && { opacity: 0.3 },
+              ]}>
+              <ChevronRight size={20} color={theme.text} />
+            </Pressable>
+          </View>
+        )}
       </SafeAreaView>
     </ThemedView>
   );
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: Spacing.four, justifyContent: 'center', flexDirection: 'row' },
+  container: { flex: 1, paddingHorizontal: Spacing.three, justifyContent: 'center', flexDirection: 'row' },
   safe: { flex: 1, maxWidth: MaxContentWidth, paddingBottom: 0 },
   dateBtn: {
     flex: 1,
@@ -371,15 +391,27 @@ const s = StyleSheet.create({
   retryBtn: { backgroundColor: '#208AEF', paddingHorizontal: 20, paddingVertical: 8, borderRadius: 4, marginTop: 8 },
   paginationRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 8,
+    gap: 16,
+    paddingVertical: 12,
+    marginBottom: Platform.OS === 'ios' ? 90 : 76,
   },
   pageBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pageIndicator: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minWidth: 80,
   },
 });

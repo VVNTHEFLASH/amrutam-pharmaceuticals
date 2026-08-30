@@ -102,7 +102,7 @@ export default function BookingsScreen() {
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: Spacing.four, justifyContent: 'center', flexDirection: 'row' },
+  container: { flex: 1, paddingHorizontal: Spacing.three, justifyContent: 'center', flexDirection: 'row' },
   safe: { flex: 1, maxWidth: MaxContentWidth, paddingBottom: 0 },
   title: { marginVertical: Spacing.three },
   listContent: { gap: Spacing.three, paddingBottom: 96 },
