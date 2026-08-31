@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 import { useFonts, Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold, Poppins_700Bold } from '@expo-google-fonts/poppins';
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
+import { DarkTheme, DefaultTheme, ThemeProvider, Href } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { router } from 'expo-router';
 
@@ -28,7 +28,7 @@ export default function TabLayout() {
   useEffect(() => {
     routerRegistry.push = (path: string) => {
       try {
-        router.push(path as any);
+        router.push(path as Href);
       } catch (err) {
         console.error('routerRegistry push failed:', err);
       }

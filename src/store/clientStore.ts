@@ -9,6 +9,21 @@ import { supabase, isSupabaseConfigured } from '@/services/supabase';
 import { Booking, CartItem, Product } from '@/types/domain';
 import { AppError } from '@/types/errors';
 
+export interface WishlistQueueItem {
+  id: string;
+  type: 'ADD' | 'REMOVE';
+  productId: string;
+  attempts?: number;
+}
+
+export interface CartQueueItem {
+  id: string;
+  type: 'ADD' | 'REMOVE' | 'UPDATE' | 'CLEAR';
+  productId?: string;
+  quantity?: number;
+  attempts?: number;
+}
+
 export interface ClientState {
   userId: string | null;
   cart: CartItem[];
@@ -16,8 +31,8 @@ export interface ClientState {
   bookingQueue: Booking[];
   isConnected: boolean;
   syncStatus: 'idle' | 'syncing' | 'completed' | 'failed';
-  wishlistQueue: { id: string; type: 'ADD' | 'REMOVE'; productId: string; attempts?: number }[];
-  cartQueue: { id: string; type: 'ADD' | 'REMOVE' | 'UPDATE' | 'CLEAR'; productId?: string; quantity?: number; attempts?: number }[];
+  wishlistQueue: WishlistQueueItem[];
+  cartQueue: CartQueueItem[];
 }
 
 export interface ClientActions {

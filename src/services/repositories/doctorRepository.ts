@@ -1,10 +1,12 @@
 import { DoctorQuery, PaginatedResult, PaginationMetadata, TimeSlot } from '@/types/api';
 import { Doctor } from '@/types/domain';
 import { AppError } from '@/types/errors';
+import { Database } from '@/types/database';
 
 import { apiClient } from '../api/apiClient';
 import { getDoctorByIndex, TOTAL_DOCTORS } from '../mockData';
 import { supabase, isSupabaseConfigured } from '../supabase';
+
 
 function buildMetadata(totalCount: number, page: number, pageSize: number): PaginationMetadata {
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
@@ -19,7 +21,9 @@ function buildMetadata(totalCount: number, page: number, pageSize: number): Pagi
   };
 }
 
-function mapDbDoctor(row: any): Doctor {
+type DoctorRow = Database['public']['Tables']['doctors']['Row'];
+
+function mapDbDoctor(row: DoctorRow): Doctor {
   return {
     id: row.id,
     name: row.name,

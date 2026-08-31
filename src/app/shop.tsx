@@ -16,7 +16,7 @@ import { Search, ChevronLeft, ChevronRight, Heart, Plus, Minus } from 'lucide-re
 import { HorizontalFilterRow } from '@/components/horizontal-filter-row';
 import { productRepository } from '@/services/repositories/productRepository';
 import { Product } from '@/types/domain';
-import { AppError } from '@/types/errors';
+import { AppError, getErrorMessage } from '@/types/errors';
 
 const CATS = ['Ayurvedic Medicine', 'Homeopathy', 'Wellness & Nutrition', 'Personal Care', 'Baby Care', 'Devices'];
 
@@ -127,44 +127,44 @@ export default function ShopScreen() {
     try {
       addToCart(product, 1);
       showToast('success', `${product.name} added to cart!`);
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (err instanceof AppError && err.code === 'UNAUTHORIZED') {
         return;
       }
-      showToast('error', err.message);
+      showToast('error', getErrorMessage(err));
     }
   };
 
   const handleUpdateQty = (productId: string, qty: number) => {
     try {
       updateCartQuantity(productId, qty);
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (err instanceof AppError && err.code === 'UNAUTHORIZED') {
         return;
       }
-      showToast('error', err.message);
+      showToast('error', getErrorMessage(err));
     }
   };
 
   const handleRemoveFromCart = (productId: string) => {
     try {
       removeFromCart(productId);
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (err instanceof AppError && err.code === 'UNAUTHORIZED') {
         return;
       }
-      showToast('error', err.message);
+      showToast('error', getErrorMessage(err));
     }
   };
 
   const handleClearCart = () => {
     try {
       clearCart();
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (err instanceof AppError && err.code === 'UNAUTHORIZED') {
         return;
       }
-      showToast('error', err.message);
+      showToast('error', getErrorMessage(err));
     }
   };
 

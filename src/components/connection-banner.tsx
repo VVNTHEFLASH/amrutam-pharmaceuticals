@@ -52,7 +52,7 @@ export function ConnectionBanner() {
     }
   };
 
-  let bg: string, textCol: string, status: string, desc: string, Icon: any;
+  let bg: string = '', textCol: string = '', status: string = '', desc: string = '', Icon: React.ComponentType<any> | null = null;
   let showBtn = false, showLoader = false;
 
   if (!isConnected) {

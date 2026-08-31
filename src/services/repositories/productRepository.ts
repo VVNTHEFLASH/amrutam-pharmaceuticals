@@ -1,6 +1,7 @@
 import { ProductQuery, PaginatedResult, PaginationMetadata } from '@/types/api';
 import { Product } from '@/types/domain';
 import { AppError } from '@/types/errors';
+import { Database } from '@/types/database';
 
 import { apiClient } from '../api/apiClient';
 import { getProductByIndex, TOTAL_PRODUCTS } from '../mockData';
@@ -19,7 +20,9 @@ function buildMetadata(totalCount: number, page: number, pageSize: number): Pagi
   };
 }
 
-function mapDbProduct(row: any): Product {
+type ProductRow = Database['public']['Tables']['products']['Row'];
+
+function mapDbProduct(row: ProductRow): Product {
   return {
     id: row.id,
     name: row.name,

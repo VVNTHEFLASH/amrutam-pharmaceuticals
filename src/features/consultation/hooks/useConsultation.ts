@@ -3,8 +3,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { doctorRepository } from '@/services/repositories/doctorRepository';
 import { useClientStore } from '@/store/clientStore';
 import { DoctorQuery, TimeSlot } from '@/types/api';
-import { Doctor } from '@/types/domain';
-import { AppError } from '@/types/errors';
+import { Doctor, DayOfWeek } from '@/types/domain';
+import { AppError, getErrorMessage } from '@/types/errors';
 import { useAuth } from '@/context/AuthContext';
 import { bookingSyncService, triggerSync } from '@/services/bookingSyncService';
 import { timeProvider } from '@/services/timeProvider';
@@ -21,7 +21,7 @@ export function useConsultation() {
     page: 1,
     search: '',
     specialty: '',
-    availability: '',
+    availability: '' as DayOfWeek | '',
     sort: 'rating_desc' as 'name_asc' | 'name_desc' | 'rating_desc' | 'fee_asc' | 'fee_desc',
   });
 
@@ -58,7 +58,7 @@ export function useConsultation() {
         q.specialty = filters.specialty;
       }
       if (filters.availability) {
-        q.availability = filters.availability;
+        q.availability = filters.availability as DayOfWeek;
       }
 
       const result = await doctorRepository.getDoctors(q);
@@ -69,9 +69,9 @@ export function useConsultation() {
         totalCount: result.metadata.totalCount,
         totalPages: result.metadata.totalPages,
       });
-    } catch (e: any) {
+    } catch (e: unknown) {
       if (queryId === queryIdRef.current) {
-        setError(e instanceof AppError ? e.message : 'Error loading doctors.');
+        setError(getErrorMessage(e, 'Error loading doctors.'));
       }
     } finally {
       if (queryId === queryIdRef.current) {
@@ -90,8 +90,8 @@ export function useConsultation() {
     try {
       const liveSlots = await doctorRepository.getAvailableSlots(docId, dateStr);
       setSlots(liveSlots);
-    } catch (e: any) {
-      setSlotsError(e instanceof AppError ? e.message : 'Error loading slots.');
+    } catch (e: unknown) {
+      setSlotsError(getErrorMessage(e, 'Error loading slots.'));
     } finally {
       setLoadingSlots(false);
     }
@@ -150,7 +150,7 @@ export function useConsultation() {
       try {
         const liveSlots = await doctorRepository.getAvailableSlots(doctor.id, dateStr);
         ms = liveSlots.find((s) => s.time === slotTime);
-      } catch (err: any) {
+      } catch (err: unknown) {
         // Bypassing network or timeout errors while offline
         if (err instanceof AppError && (err.code === 'NETWORK_FAILURE' || err.code === 'TIMEOUT')) {
           // Serves offline queueing

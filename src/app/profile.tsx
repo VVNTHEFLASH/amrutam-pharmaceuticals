@@ -21,6 +21,7 @@ import { isSupabaseConfigured } from '@/services/supabase';
 import { useToastStore } from '@/store/toastStore';
 import { biometricService } from '@/services/biometrics';
 import { useFeatureFlag } from '@/services/featureFlags';
+import { getErrorMessage } from '@/types/errors';
 
 export default function ProfileScreen() {
   const {
@@ -69,7 +70,7 @@ export default function ProfileScreen() {
       } else {
         showToast('error', 'Authentication failed. Setting remained unchanged.');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       showToast('error', 'An error occurred while changing settings.');
     } finally {
       setActionLoading(false);
@@ -144,9 +145,10 @@ export default function ProfileScreen() {
       await signIn(email.trim(), password);
       showToast('success', 'Successfully signed in!');
       setErrorMsg(null);
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to sign in.');
-      showToast('error', err.message || 'Failed to sign in.');
+    } catch (err: unknown) {
+      const errMsg = getErrorMessage(err, 'Failed to sign in.');
+      setErrorMsg(errMsg);
+      showToast('error', errMsg);
     } finally {
       setActionLoading(false);
     }
@@ -168,9 +170,10 @@ export default function ProfileScreen() {
       showToast('success', 'Registration completed! Check your email.');
       setErrorMsg(null);
       setIsSignUpFlow(false);
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to sign up.');
-      showToast('error', err.message || 'Failed to sign up.');
+    } catch (err: unknown) {
+      const errMsg = getErrorMessage(err, 'Failed to sign up.');
+      setErrorMsg(errMsg);
+      showToast('error', errMsg);
     } finally {
       setActionLoading(false);
     }
@@ -187,9 +190,10 @@ export default function ProfileScreen() {
       });
       showToast('success', 'Profile updated successfully!');
       setErrorMsg(null);
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to update profile.');
-      showToast('error', err.message || 'Failed to update profile.');
+    } catch (err: unknown) {
+      const errMsg = getErrorMessage(err, 'Failed to update profile.');
+      setErrorMsg(errMsg);
+      showToast('error', errMsg);
     } finally {
       setActionLoading(false);
     }
@@ -203,9 +207,10 @@ export default function ProfileScreen() {
       setHasInitializedEditFields(false);
       showToast('success', 'Successfully signed out.');
       setErrorMsg(null);
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to sign out.');
-      showToast('error', err.message || 'Failed to sign out.');
+    } catch (err: unknown) {
+      const errMsg = getErrorMessage(err, 'Failed to sign out.');
+      setErrorMsg(errMsg);
+      showToast('error', errMsg);
     } finally {
       setActionLoading(false);
     }

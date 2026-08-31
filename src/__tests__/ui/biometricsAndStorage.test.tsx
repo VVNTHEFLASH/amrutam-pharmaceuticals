@@ -74,12 +74,12 @@ describe('Secure Storage, Feature Flags, and Biometrics Gating', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (globalThis as any).clearSecureStoreMemory();
+    globalThis.clearSecureStoreMemory();
     useToastStore.setState({ toasts: [] });
     // Reset local auth mocks
-    (globalThis as any).localAuthMock.hasHardware = true;
-    (globalThis as any).localAuthMock.isEnrolled = true;
-    (globalThis as any).localAuthMock.authenticateSuccess = true;
+    globalThis.localAuthMock.hasHardware = true;
+    globalThis.localAuthMock.isEnrolled = true;
+    globalThis.localAuthMock.authenticateSuccess = true;
     // Reset useAuth controls
     mockIsAuthenticated = false;
     mockUser = null;
@@ -143,8 +143,8 @@ describe('Secure Storage, Feature Flags, and Biometrics Gating', () => {
     it('enables biometrics by default on devices that have hardware and are enrolled', async () => {
       if (Platform.OS === 'web') return;
 
-      (globalThis as any).localAuthMock.hasHardware = true;
-      (globalThis as any).localAuthMock.isEnrolled = true;
+      globalThis.localAuthMock.hasHardware = true;
+      globalThis.localAuthMock.isEnrolled = true;
 
       const isEnabled = await biometricService.isEnabled();
       expect(isEnabled).toBe(true);
@@ -153,7 +153,7 @@ describe('Secure Storage, Feature Flags, and Biometrics Gating', () => {
     it('gracefully disables biometrics when hardware or enrollment is not present', async () => {
       if (Platform.OS === 'web') return;
 
-      (globalThis as any).localAuthMock.hasHardware = false;
+      globalThis.localAuthMock.hasHardware = false;
       const isEnabled = await biometricService.isEnabled();
       expect(isEnabled).toBe(false);
     });
@@ -161,14 +161,14 @@ describe('Secure Storage, Feature Flags, and Biometrics Gating', () => {
     it('authenticates user and toggles settings securely', async () => {
       if (Platform.OS === 'web') return;
 
-      (globalThis as any).localAuthMock.authenticateSuccess = true;
+      globalThis.localAuthMock.authenticateSuccess = true;
       const setTrueResult = await biometricService.setEnabled(true);
       expect(setTrueResult).toBe(true);
 
       const isEnabled1 = await biometricService.isEnabled();
       expect(isEnabled1).toBe(true);
 
-      (globalThis as any).localAuthMock.authenticateSuccess = false;
+      globalThis.localAuthMock.authenticateSuccess = false;
       const setFalseResult = await biometricService.setEnabled(false);
       expect(setFalseResult).toBe(false);
 
@@ -196,8 +196,8 @@ describe('Secure Storage, Feature Flags, and Biometrics Gating', () => {
         return;
       }
 
-      (globalThis as any).localAuthMock.authenticateSuccess = false;
-      (globalThis as any).setSecureStoreItemMock('biometric_enabled_pref', 'true');
+      globalThis.localAuthMock.authenticateSuccess = false;
+      globalThis.setSecureStoreItemMock('biometric_enabled_pref', 'true');
 
       let rendered: any;
       await act(async () => {
@@ -217,8 +217,8 @@ describe('Secure Storage, Feature Flags, and Biometrics Gating', () => {
     });
 
     it('unlocks screen and shows children upon successful authentication', async () => {
-      (globalThis as any).localAuthMock.authenticateSuccess = true;
-      (globalThis as any).setSecureStoreItemMock('biometric_enabled_pref', 'true');
+      globalThis.localAuthMock.authenticateSuccess = true;
+      globalThis.setSecureStoreItemMock('biometric_enabled_pref', 'true');
 
       let rendered: any;
       await act(async () => {
@@ -239,8 +239,8 @@ describe('Secure Storage, Feature Flags, and Biometrics Gating', () => {
     it('triggers lock validation on AppState foreground transition', async () => {
       if (Platform.OS === 'web') return;
 
-      (globalThis as any).localAuthMock.authenticateSuccess = true;
-      (globalThis as any).setSecureStoreItemMock('biometric_enabled_pref', 'true');
+      globalThis.localAuthMock.authenticateSuccess = true;
+      globalThis.setSecureStoreItemMock('biometric_enabled_pref', 'true');
 
       let rendered: any;
       await act(async () => {
@@ -268,7 +268,7 @@ describe('Secure Storage, Feature Flags, and Biometrics Gating', () => {
         }
       });
 
-      (globalThis as any).localAuthMock.authenticateSuccess = false;
+      globalThis.localAuthMock.authenticateSuccess = false;
 
       await act(async () => {
         if (changeCallback) {
@@ -287,9 +287,9 @@ describe('Secure Storage, Feature Flags, and Biometrics Gating', () => {
       mockUser = { id: 'auth-user', email: 'test@amrutam.com' };
       mockProfile = { fullName: 'Test User', phone: '1234567890', avatarUrl: '' };
 
-      (globalThis as any).localAuthMock.hasHardware = true;
-      (globalThis as any).localAuthMock.isEnrolled = true;
-      (globalThis as any).setSecureStoreItemMock('biometric_enabled_pref', 'true');
+      globalThis.localAuthMock.hasHardware = true;
+      globalThis.localAuthMock.isEnrolled = true;
+      globalThis.setSecureStoreItemMock('biometric_enabled_pref', 'true');
 
       let rendered: any;
       await act(async () => {
@@ -313,9 +313,9 @@ describe('Secure Storage, Feature Flags, and Biometrics Gating', () => {
       mockUser = null;
       mockProfile = null;
 
-      (globalThis as any).localAuthMock.hasHardware = true;
-      (globalThis as any).localAuthMock.isEnrolled = true;
-      (globalThis as any).setSecureStoreItemMock('biometric_enabled_pref', 'true');
+      globalThis.localAuthMock.hasHardware = true;
+      globalThis.localAuthMock.isEnrolled = true;
+      globalThis.setSecureStoreItemMock('biometric_enabled_pref', 'true');
 
       let rendered: any;
       await act(async () => {
@@ -341,9 +341,9 @@ describe('Secure Storage, Feature Flags, and Biometrics Gating', () => {
       mockUser = { id: 'auth-user', email: 'test@amrutam.com' };
       mockProfile = { fullName: 'Test User', phone: '1234567890', avatarUrl: '' };
 
-      (globalThis as any).localAuthMock.hasHardware = true;
-      (globalThis as any).localAuthMock.isEnrolled = true;
-      (globalThis as any).setSecureStoreItemMock('biometric_enabled_pref', 'true');
+      globalThis.localAuthMock.hasHardware = true;
+      globalThis.localAuthMock.isEnrolled = true;
+      globalThis.setSecureStoreItemMock('biometric_enabled_pref', 'true');
 
       let rendered: any;
       await act(async () => {
@@ -354,7 +354,7 @@ describe('Secure Storage, Feature Flags, and Biometrics Gating', () => {
       const root = rendered.root;
       const toggle = root.findByProps({ accessibilityLabel: 'Toggle biometric lock' });
 
-      (globalThis as any).localAuthMock.authenticateSuccess = true;
+      globalThis.localAuthMock.authenticateSuccess = true;
       await act(async () => {
         await toggle.props.onValueChange(false);
       });
@@ -362,7 +362,7 @@ describe('Secure Storage, Feature Flags, and Biometrics Gating', () => {
 
       expect(toggle.props.value).toBe(false);
 
-      (globalThis as any).localAuthMock.authenticateSuccess = false;
+      globalThis.localAuthMock.authenticateSuccess = false;
       await act(async () => {
         await toggle.props.onValueChange(true);
       });

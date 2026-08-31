@@ -1,4 +1,4 @@
-import { Doctor, HealthRecord, Product } from '@/types/domain';
+import { Doctor, HealthRecord, Product, DayOfWeek } from '@/types/domain';
 
 const S_NAMES = ['Aarav', 'Aditi', 'Amit', 'Amrita', 'Ananya', 'Arjun', 'Dev', 'Divya', 'Ganesh', 'Ira', 'Karan', 'Kavya', 'Manish', 'Neha', 'Pranav'];
 const S_LAST = ['Sharma', 'Verma', 'Gupta', 'Patel', 'Mehta', 'Joshi', 'Rao', 'Nair', 'Iyer', 'Reddy'];
@@ -35,8 +35,8 @@ export function getDoctorByIndex(i: number): Doctor {
   const rating = parseFloat((4.0 + r5 * 1.0).toFixed(1));
   const consultationFee = (Math.floor(r1 * 15) + 3) * 100;
 
-  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const availableDays: string[] = [];
+  const days: DayOfWeek[] = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const availableDays: DayOfWeek[] = [];
   for (let d = 0; d < days.length; d++) {
     if (seededRandom(seed + 100 + d) > 0.45) availableDays.push(days[d]);
   }

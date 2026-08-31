@@ -1,6 +1,7 @@
 import { HealthRecordQuery, PaginatedResult, PaginationMetadata } from '@/types/api';
 import { HealthRecord } from '@/types/domain';
 import { AppError } from '@/types/errors';
+import { Database } from '@/types/database';
 
 import { apiClient } from '../api/apiClient';
 import { getHealthRecordByIndex, TOTAL_HEALTH_RECORDS } from '../mockData';
@@ -19,7 +20,9 @@ function buildMetadata(totalCount: number, page: number, pageSize: number): Pagi
   };
 }
 
-function mapDbHealthRecord(row: any): HealthRecord {
+type HealthRecordRow = Database['public']['Tables']['health_records']['Row'];
+
+function mapDbHealthRecord(row: HealthRecordRow): HealthRecord {
   return {
     id: row.id,
     patientName: row.patient_name,

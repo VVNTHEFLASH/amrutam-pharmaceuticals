@@ -63,10 +63,20 @@ jest.mock('expo-secure-store', () => {
     }),
   };
 });
-(globalThis as any).clearSecureStoreMemory = () => {
+declare global {
+  var clearSecureStoreMemory: () => void;
+  var setSecureStoreItemMock: (key: string, value: string) => void;
+  var localAuthMock: {
+    hasHardware: boolean;
+    isEnrolled: boolean;
+    authenticateSuccess: boolean;
+  };
+}
+
+globalThis.clearSecureStoreMemory = () => {
   mockSecureStoreMemory = {};
 };
-(globalThis as any).setSecureStoreItemMock = (key: string, value: string) => {
+globalThis.setSecureStoreItemMock = (key: string, value: string) => {
   mockSecureStoreMemory[key] = value;
 };
 
@@ -85,5 +95,5 @@ jest.mock('expo-local-authentication', () => {
     }),
   };
 });
-(globalThis as any).localAuthMock = mockLocalAuth;
+globalThis.localAuthMock = mockLocalAuth;
 

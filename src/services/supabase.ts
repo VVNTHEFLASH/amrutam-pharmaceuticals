@@ -1,4 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { Database } from '@/types/database';
 import { secureStorage } from './secureStorage';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
@@ -25,8 +26,8 @@ const customStorage = {
   },
 };
 
-export const supabase = isSupabaseConfigured
-  ? createClient(supabaseUrl, supabaseAnonKey, {
+export const supabase: SupabaseClient<Database> = isSupabaseConfigured
+  ? createClient<Database>(supabaseUrl, supabaseAnonKey, {
       auth: {
         storage: customStorage,
         persistSession: true,
@@ -34,6 +35,7 @@ export const supabase = isSupabaseConfigured
         detectSessionInUrl: false,
       },
     })
-  : (null as any);
+  : (null as unknown as SupabaseClient<Database>);
+
 
 

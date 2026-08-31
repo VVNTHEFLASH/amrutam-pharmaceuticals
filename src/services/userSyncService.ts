@@ -53,7 +53,7 @@ export const userSyncService = {
           useClientStore.setState({
             wishlistQueue: useClientStore.getState().wishlistQueue.filter((q) => q.id !== item.id),
           });
-        } catch (e: any) {
+        } catch (e: unknown) {
           if (e instanceof AppError && (e.code === 'NETWORK_FAILURE' || e.code === 'TIMEOUT')) {
             throw e; // Pause execution and retry later
           }
@@ -79,7 +79,7 @@ export const userSyncService = {
           useClientStore.setState({
             cartQueue: useClientStore.getState().cartQueue.filter((q) => q.id !== item.id),
           });
-        } catch (e: any) {
+        } catch (e: unknown) {
           if (e instanceof AppError && (e.code === 'NETWORK_FAILURE' || e.code === 'TIMEOUT')) {
             throw e; // Pause execution and retry later
           }

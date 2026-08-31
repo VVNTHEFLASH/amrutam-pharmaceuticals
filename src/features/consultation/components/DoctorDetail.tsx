@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimePicker, { DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 import { CalendarDays } from 'lucide-react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -49,7 +49,7 @@ export function DoctorDetail({
     return new Date(y, m - 1, d);
   };
 
-  const handleDateSelect = (event: any, date?: Date) => {
+  const handleDateSelect = (event: DateTimePickerChangeEvent, date?: Date) => {
     setShowDatePicker(false);
     if (date) {
       const year = date.getFullYear();

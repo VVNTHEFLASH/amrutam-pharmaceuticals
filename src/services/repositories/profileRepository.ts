@@ -3,8 +3,11 @@ import { AppError } from '@/types/errors';
 import { supabase, isSupabaseConfigured } from '../supabase';
 import { apiClient } from '../api/apiClient';
 import { apiCache } from '../api/apiCache';
+import { Database } from '@/types/database';
 
-function mapDbProfile(row: any): Profile {
+type ProfileRow = Database['public']['Tables']['profiles']['Row'];
+
+function mapDbProfile(row: ProfileRow): Profile {
   return {
     id: row.id,
     fullName: row.full_name,
@@ -37,7 +40,7 @@ export const profileRepository = {
 
         return mapDbProfile(data);
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (error instanceof AppError && error.message.includes('Empty response')) {
         return null;
       }
@@ -54,7 +57,7 @@ export const profileRepository = {
     }
 
     const cacheKey = `profile?id=${userId}`;
-    const dbUpdates: any = {};
+    const dbUpdates: Database['public']['Tables']['profiles']['Update'] = {};
     if (updates.fullName !== undefined) dbUpdates.full_name = updates.fullName;
     if (updates.phone !== undefined) dbUpdates.phone = updates.phone;
     if (updates.avatarUrl !== undefined) dbUpdates.avatar_url = updates.avatarUrl;

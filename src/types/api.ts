@@ -1,3 +1,5 @@
+import { DayOfWeek } from './domain';
+
 export interface PaginatedQuery {
   page: number;
   pageSize: number;
@@ -20,7 +22,7 @@ export interface PaginatedResult<T> {
 export interface DoctorQuery extends PaginatedQuery {
   search?: string;
   specialty?: string;
-  availability?: string; // Day of the week: 'Monday', 'Tuesday', etc.
+  availability?: DayOfWeek; // Day of the week
   sort?: 'name_asc' | 'name_desc' | 'rating_desc' | 'fee_asc' | 'fee_desc';
 }
 

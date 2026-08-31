@@ -1,5 +1,10 @@
 import { supabase, isSupabaseConfigured } from '../supabase';
 import { AppError } from '@/types/errors';
+import { Database } from '@/types/database';
+
+interface WishlistItemDbRow {
+  product_id: string;
+}
 
 export const wishlistRepository = {
   async getWishlist(userId: string): Promise<string[]> {
@@ -16,7 +21,7 @@ export const wishlistRepository = {
       throw new AppError('UNKNOWN_FAILURE', `Failed to fetch wishlist from Supabase: ${error.message}`, error);
     }
 
-    return (data || []).map((row: any) => row.product_id);
+    return ((data || []) as unknown as WishlistItemDbRow[]).map((row) => row.product_id);
   },
 
   async addToWishlist(userId: string, productId: string): Promise<void> {

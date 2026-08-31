@@ -3,7 +3,7 @@ import { supabase, isSupabaseConfigured } from '@/services/supabase';
 import { User, Session, AuthChangeEvent } from '@supabase/supabase-js';
 import { profileRepository } from '@/services/repositories/profileRepository';
 import { Profile } from '@/types/domain';
-import { AppError } from '@/types/errors';
+import { AppError, getErrorMessage } from '@/types/errors';
 
 interface AuthContextType {
   user: User | null;
@@ -74,8 +74,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         setIsLoading(false);
       }
-    }).catch((err: any) => {
-      console.error('Error getting session:', err);
+    }).catch((err: unknown) => {
+      console.error('Error getting session:', getErrorMessage(err));
       if (isMounted) setIsLoading(false);
     });
 
@@ -151,7 +151,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         try {
           const { apiCache } = require('@/services/api/apiCache');
-          apiCache.clearAll().catch((err: any) => console.error('Error clearing cache:', err));
+          apiCache.clearAll().catch((err: unknown) => console.error('Error clearing cache:', getErrorMessage(err)));
         } catch (cacheErr) {
           console.error('Error importing apiCache on logout:', cacheErr);
         }

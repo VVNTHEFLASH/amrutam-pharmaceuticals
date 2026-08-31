@@ -11,12 +11,12 @@ import { useConsultation } from '@/features/consultation/hooks/useConsultation';
 import { useTheme } from '@/hooks/use-theme';
 import { useClientStore } from '@/store/clientStore';
 import { useToastStore } from '@/store/toastStore';
-import { Doctor } from '@/types/domain';
-import { AppError } from '@/types/errors';
+import { Doctor, DayOfWeek } from '@/types/domain';
+import { AppError, getErrorMessage } from '@/types/errors';
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react-native';
 
 const SP = ['General Physician', 'Ayurvedic Specialist', 'Homeopathic Specialist', 'Dermatologist'];
-const DY = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const DY: DayOfWeek[] = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 export default function DoctorsScreen() {
   const {
@@ -51,12 +51,13 @@ export default function DoctorsScreen() {
     try {
       await bookSlot(doctor, selectedDate, slotTime);
       showToast('success', `Appointment with ${doctor.name} booked successfully!`);
-    } catch (err: any) {
-      setMsg(err.message);
+    } catch (err: unknown) {
+      const errMsg = getErrorMessage(err);
+      setMsg(errMsg);
       if (err instanceof AppError && err.code === 'UNAUTHORIZED') {
         return;
       }
-      showToast('error', err.message);
+      showToast('error', errMsg);
     }
   };
 

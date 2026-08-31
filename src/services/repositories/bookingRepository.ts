@@ -1,8 +1,11 @@
 import { supabase, isSupabaseConfigured } from '../supabase';
 import { Booking } from '@/types/domain';
 import { AppError } from '@/types/errors';
+import { Database } from '@/types/database';
 
-function mapDbBooking(row: any): Booking {
+type BookingRow = Database['public']['Tables']['bookings']['Row'];
+
+function mapDbBooking(row: BookingRow): Booking {
   return {
     id: row.id,
     userId: row.user_id,

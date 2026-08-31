@@ -21,3 +21,19 @@ export class AppError extends Error {
     Object.setPrototypeOf(this, AppError.prototype);
   }
 }
+
+export function getErrorMessage(
+  error: unknown,
+  fallback = 'An unexpected error occurred'
+): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (typeof error === 'string') {
+    return error;
+  }
+
+  return fallback;
+}
+

@@ -2,7 +2,7 @@ import { doctorRepository } from '@/services/repositories/doctorRepository';
 import { bookingRepository } from '@/services/repositories/bookingRepository';
 import type { useClientStore as useClientStoreType } from '@/store/clientStore';
 import { Booking } from '@/types/domain';
-import { AppError } from '@/types/errors';
+import { AppError, getErrorMessage } from '@/types/errors';
 import { supabase, isSupabaseConfigured } from '@/services/supabase';
 import { timeProvider } from '@/services/timeProvider';
 
@@ -171,8 +171,8 @@ export const bookingSyncService = {
           });
 
           console.log(`[SyncService] booking synchronized: ${booking.id}`);
-        } catch (e: any) {
-          const errMessage = e instanceof AppError ? e.message : String(e);
+        } catch (e: unknown) {
+          const errMessage = getErrorMessage(e);
           console.error(`[BookingRepository] Supabase insert failed: ${errMessage}`);
           console.error(`[SyncService] booking remains retryable: ${booking.id}`);
 
@@ -214,7 +214,7 @@ export const bookingSyncService = {
 
 let isCoordinatorSyncing = false;
 let retryCount = 0;
-let retryTimer: any = null;
+let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
 if (typeof afterEach === 'function') {
   afterEach(() => {
@@ -251,7 +251,7 @@ export async function triggerSync(): Promise<void> {
   }
 
   // Guard 2.5: Any pending items to sync?
-  const pendingBookings = store.bookingQueue.filter((b: any) => b.status === 'pending').length;
+  const pendingBookings = store.bookingQueue.filter((b: Booking) => b.status === 'pending').length;
   const pendingWishlist = store.wishlistQueue.length;
   const pendingCart = store.cartQueue.length;
   const totalPending = pendingBookings + pendingWishlist + pendingCart;
@@ -290,7 +290,7 @@ export async function triggerSync(): Promise<void> {
       require('@/store/clientStore').useClientStore
     ).getState();
 
-    const pendingBookings = finalStore.bookingQueue.filter((b: any) => b.status === 'pending').length;
+    const pendingBookings = finalStore.bookingQueue.filter((b: Booking) => b.status === 'pending').length;
     const pendingWishlist = finalStore.wishlistQueue.length;
     const pendingCart = finalStore.cartQueue.length;
     const totalPending = pendingBookings + pendingWishlist + pendingCart;

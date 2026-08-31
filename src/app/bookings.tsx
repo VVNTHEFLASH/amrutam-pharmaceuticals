@@ -10,6 +10,7 @@ import { useConsultation } from '@/features/consultation/hooks/useConsultation';
 import { useClientStore } from '@/store/clientStore';
 import { useToastStore } from '@/store/toastStore';
 import { useAuth } from '@/context/AuthContext';
+import { getErrorMessage } from '@/types/errors';
 
 const NOW = new Date(2026, 7, 30, 11, 0); // Sunday, Aug 30, 2026 at 11:00 AM
 
@@ -23,8 +24,8 @@ export default function BookingsScreen() {
     try {
       cancelBooking(bookingId);
       showToast('success', 'Consultation cancelled successfully.');
-    } catch (e: any) {
-      const errMsg = e?.message || 'Failed to cancel.';
+    } catch (e: unknown) {
+      const errMsg = getErrorMessage(e, 'Failed to cancel.');
       showToast('error', errMsg);
     }
   };

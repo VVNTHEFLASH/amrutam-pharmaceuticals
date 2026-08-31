@@ -1,3 +1,12 @@
+export type DayOfWeek =
+  | 'Monday'
+  | 'Tuesday'
+  | 'Wednesday'
+  | 'Thursday'
+  | 'Friday'
+  | 'Saturday'
+  | 'Sunday';
+
 export interface Doctor {
   id: string; // stable identifier like "doc-1", "doc-2"
   name: string;
@@ -6,7 +15,7 @@ export interface Doctor {
   rating: number;
   experience: number; // in years
   consultationFee: number;
-  availableDays: string[]; // e.g. ["Monday", "Wednesday"]
+  availableDays: DayOfWeek[]; // e.g. ["Monday", "Wednesday"]
 }
 
 export interface Product {

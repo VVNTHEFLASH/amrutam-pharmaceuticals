@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { healthRecordRepository } from '@/services/repositories/healthRecordRepository';
 import { HealthRecordQuery, HealthRecordType } from '@/types/api';
 import { HealthRecord } from '@/types/domain';
-import { AppError } from '@/types/errors';
+import { AppError, getErrorMessage } from '@/types/errors';
 
 export function useRecords() {
   const [records, setRecords] = useState<HealthRecord[]>([]);
@@ -61,9 +61,9 @@ export function useRecords() {
         totalCount: result.metadata.totalCount,
         totalPages: result.metadata.totalPages,
       });
-    } catch (e: any) {
+    } catch (e: unknown) {
       if (queryId === queryIdRef.current) {
-        setError(e instanceof AppError ? e.message : 'Error loading health records.');
+        setError(getErrorMessage(e, 'Error loading health records.'));
       }
     } finally {
       if (queryId === queryIdRef.current) {

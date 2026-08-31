@@ -1,8 +1,17 @@
 import { supabase, isSupabaseConfigured } from '../supabase';
 import { CartItem, Product } from '@/types/domain';
 import { AppError } from '@/types/errors';
+import { Database } from '@/types/database';
 
-function mapDbProduct(row: any): Product {
+type ProductRow = Database['public']['Tables']['products']['Row'];
+
+interface CartItemDbRow {
+  product_id: string;
+  quantity: number;
+  product: ProductRow | null;
+}
+
+function mapDbProduct(row: ProductRow): Product {
   return {
     id: row.id,
     name: row.name,
@@ -78,12 +87,12 @@ export const cartRepository = {
       throw new AppError('UNKNOWN_FAILURE', `Failed to fetch cart items: ${itemsError.message}`, itemsError);
     }
 
-    return (items || [])
-      .filter((row: any) => row.product !== null)
-      .map((row: any) => ({
+    return ((items || []) as unknown as CartItemDbRow[])
+      .filter((row) => row.product !== null)
+      .map((row) => ({
         productId: row.product_id,
         quantity: row.quantity,
-        product: mapDbProduct(row.product),
+        product: mapDbProduct(row.product!),
       }));
   },
 

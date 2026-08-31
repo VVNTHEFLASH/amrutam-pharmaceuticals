@@ -12,7 +12,7 @@ import { HealthRecordType } from '@/types/api';
 import { HealthRecord } from '@/types/domain';
 import { Search, ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react-native';
 import { HorizontalFilterRow } from '@/components/horizontal-filter-row';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimePicker, { DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 
 const TYPES: HealthRecordType[] = ['Prescription', 'Diagnostic Report', 'Lab Result', 'Immunization'];
 const TAGS = ['Ayurveda', 'Critical', 'Routine', 'Past Illness', 'Follow-up', 'Reference'];
@@ -64,7 +64,7 @@ export default function RecordsScreen() {
     return new Date(year, month - 1, day);
   };
 
-  const handleDateSelect = (event: any, selectedDate?: Date) => {
+  const handleDateSelect = (event: DateTimePickerChangeEvent, selectedDate?: Date) => {
     setShowDatePicker(false);
     if (selectedDate) {
       const yyyy = selectedDate.getFullYear();

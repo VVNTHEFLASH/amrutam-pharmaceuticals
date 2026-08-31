@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { productRepository } from '@/services/repositories/productRepository';
 import { ProductQuery } from '@/types/api';
 import { Product } from '@/types/domain';
-import { AppError } from '@/types/errors';
+import { AppError, getErrorMessage } from '@/types/errors';
 
 export function useShop() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -84,9 +84,9 @@ export function useShop() {
       });
 
       setHasMore(filters.page < result.metadata.totalPages);
-    } catch (e: any) {
+    } catch (e: unknown) {
       if (queryId === queryIdRef.current) {
-        setError(e instanceof AppError ? e.message : 'Error loading products.');
+        setError(getErrorMessage(e, 'Error loading products.'));
       }
     } finally {
       if (queryId === queryIdRef.current) {
