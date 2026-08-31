@@ -59,8 +59,8 @@ const queueWishlistMutation = (type: 'ADD' | 'REMOVE', productId: string) => {
               productId,
             }],
           }));
-          const { userSyncService } = require('@/services/userSyncService');
-          userSyncService.syncAll().catch(console.error);
+          const { triggerSync } = require('@/services/bookingSyncService');
+          triggerSync().catch(console.error);
         }
       } catch (err) {
         // Safe catch
@@ -83,8 +83,8 @@ const queueCartMutation = (type: 'ADD' | 'REMOVE' | 'UPDATE' | 'CLEAR', productI
               quantity,
             }],
           }));
-          const { userSyncService } = require('@/services/userSyncService');
-          userSyncService.syncAll().catch(console.error);
+          const { triggerSync } = require('@/services/bookingSyncService');
+          triggerSync().catch(console.error);
         }
       } catch (err) {
         // Safe catch
@@ -294,8 +294,7 @@ connectivityService.subscribe((isConnected) => {
   store.setConnected(isConnected);
 
   if (isConnected && !wasConnected) {
-    bookingSyncService.sync().catch(console.error);
-    const { userSyncService } = require('@/services/userSyncService');
-    userSyncService.syncAll().catch(console.error);
+    const { triggerSync } = require('@/services/bookingSyncService');
+    triggerSync().catch(console.error);
   }
 });

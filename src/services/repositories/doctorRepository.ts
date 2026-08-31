@@ -56,7 +56,7 @@ export const doctorRepository = {
         }
 
         if (query.availability) {
-          queryBuilder = queryBuilder.cs('available_days', [query.availability]);
+          queryBuilder = queryBuilder.contains('available_days', [query.availability]);
         }
 
         if (query.search) {

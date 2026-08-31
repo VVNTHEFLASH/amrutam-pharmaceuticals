@@ -6,7 +6,7 @@ import { DoctorQuery, TimeSlot } from '@/types/api';
 import { Doctor } from '@/types/domain';
 import { AppError } from '@/types/errors';
 import { useAuth } from '@/context/AuthContext';
-import { bookingSyncService } from '@/services/bookingSyncService';
+import { bookingSyncService, triggerSync } from '@/services/bookingSyncService';
 import { timeProvider } from '@/services/timeProvider';
 
 import { isSlotExpired, parseSlotDateTime } from '../utils/dateUtils';
@@ -25,6 +25,8 @@ export function useConsultation() {
     sort: 'rating_desc' as 'name_asc' | 'name_desc' | 'rating_desc' | 'fee_asc' | 'fee_desc',
   });
 
+  const [queryIdRef] = useState(() => ({ current: 0 }));
+
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const [selectedDate, setSelectedDate] = useState('2026-08-30');
   const [slots, setSlots] = useState<TimeSlot[]>([]);
@@ -39,7 +41,10 @@ export function useConsultation() {
 
   const fetchDoctors = useCallback(async () => {
     setLoading(true);
+    setDoctors([]); // Clear list immediately on fetch to prevent showing stale results
     setError(null);
+    const queryId = ++queryIdRef.current;
+
     try {
       const q: DoctorQuery = {
         page: filters.page,
@@ -57,15 +62,21 @@ export function useConsultation() {
       }
 
       const result = await doctorRepository.getDoctors(q);
+      if (queryId !== queryIdRef.current) return;
+
       setDoctors(result.items);
       setPages({
         totalCount: result.metadata.totalCount,
         totalPages: result.metadata.totalPages,
       });
     } catch (e: any) {
-      setError(e instanceof AppError ? e.message : 'Error loading doctors.');
+      if (queryId === queryIdRef.current) {
+        setError(e instanceof AppError ? e.message : 'Error loading doctors.');
+      }
     } finally {
-      setLoading(false);
+      if (queryId === queryIdRef.current) {
+        setLoading(false);
+      }
     }
   }, [filters]);
 
@@ -164,7 +175,7 @@ export function useConsultation() {
       });
 
       // Background synchronization
-      bookingSyncService.sync().catch((err) => {
+      triggerSync().catch((err) => {
         console.error('[useConsultation] Background sync failed:', err);
       });
 
@@ -190,7 +201,7 @@ export function useConsultation() {
       if (booking.userId) {
         if (booking.status === 'synchronized') {
           updateBookingInQueue(bookingId, { status: 'pending', mutationType: 'CANCEL' });
-          bookingSyncService.sync().catch(console.error);
+          triggerSync().catch(console.error);
         } else {
           removeQueuedBooking(bookingId);
         }
@@ -208,7 +219,18 @@ export function useConsultation() {
     ...pages,
     ...filters,
     setFilters: (update: Partial<typeof filters>) =>
-      setFilters((prev) => ({ ...prev, ...update })),
+      setFilters((prev) => {
+        const next = { ...prev, ...update };
+        const hasFilterChange =
+          update.search !== undefined ||
+          update.specialty !== undefined ||
+          update.availability !== undefined ||
+          update.sort !== undefined;
+        if (hasFilterChange && update.page === undefined) {
+          next.page = 1;
+        }
+        return next;
+      }),
     retryDoctors: fetchDoctors,
     selectedDoctor,
     selectedDate,

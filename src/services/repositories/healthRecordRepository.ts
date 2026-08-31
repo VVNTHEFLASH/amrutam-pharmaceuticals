@@ -72,7 +72,7 @@ export const healthRecordRepository = {
         }
 
         if (query.tag) {
-          queryBuilder = queryBuilder.cs('tags', [query.tag]);
+          queryBuilder = queryBuilder.contains('tags', [query.tag]);
         }
 
         if (query.date) {
@@ -89,7 +89,43 @@ export const healthRecordRepository = {
           const endDate = `${query.year}-12-31`;
           queryBuilder = queryBuilder.gte('date', startDate).lte('date', endDate);
         } else if (query.month !== undefined) {
-          queryBuilder = queryBuilder.like('date', `%-${query.month.toString().padStart(2, '0')}-%`);
+          // Determine min and max year of actual records present in the database to build dynamic range query
+          let minYear = 2023;
+          let maxYear = new Date().getFullYear() + 1;
+          try {
+            const { data: minData } = await supabase
+              .from('health_records')
+              .select('date')
+              .order('date', { ascending: true })
+              .limit(1);
+            if (minData && minData.length > 0 && minData[0].date) {
+              const yr = new Date(minData[0].date).getFullYear();
+              if (!isNaN(yr)) minYear = yr;
+            }
+            const { data: maxData } = await supabase
+              .from('health_records')
+              .select('date')
+              .order('date', { ascending: false })
+              .limit(1);
+            if (maxData && maxData.length > 0 && maxData[0].date) {
+              const yr = new Date(maxData[0].date).getFullYear();
+              if (!isNaN(yr)) maxYear = yr;
+            }
+          } catch (e) {
+            // Ignore error, fallback to default range
+          }
+
+          const years: number[] = [];
+          for (let y = minYear; y <= maxYear; y++) {
+            years.push(y);
+          }
+          const orConditions = years.map((y) => {
+            const lastDay = new Date(y, query.month!, 0).getDate();
+            const start = `${y}-${query.month!.toString().padStart(2, '0')}-01`;
+            const end = `${y}-${query.month!.toString().padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
+            return `and(date.gte.${start},date.lte.${end})`;
+          }).join(',');
+          queryBuilder = queryBuilder.or(orConditions);
         }
 
         if (query.search) {

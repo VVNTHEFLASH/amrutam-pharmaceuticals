@@ -211,3 +211,112 @@ export const bookingSyncService = {
     }
   },
 };
+
+let isCoordinatorSyncing = false;
+let retryCount = 0;
+let retryTimer: any = null;
+
+if (typeof afterEach === 'function') {
+  afterEach(() => {
+    if (retryTimer) {
+      clearTimeout(retryTimer);
+      retryTimer = null;
+    }
+    retryCount = 0;
+    isCoordinatorSyncing = false;
+  });
+}
+
+export async function triggerSync(): Promise<void> {
+  const store = (
+    require('@/store/clientStore').useClientStore
+  ).getState();
+
+  // Cancel any scheduled retry timer since we are running a sync now
+  if (retryTimer) {
+    clearTimeout(retryTimer);
+    retryTimer = null;
+  }
+
+  // Guard 1: Only run for authenticated users
+  if (!store.userId) {
+    console.log('[SyncCoordinator] No authenticated user active. Aborting auto-sync.');
+    return;
+  }
+
+  // Guard 2: Must be connected
+  if (!store.isConnected) {
+    console.log('[SyncCoordinator] Device is offline. Aborting auto-sync.');
+    return;
+  }
+
+  // Guard 2.5: Any pending items to sync?
+  const pendingBookings = store.bookingQueue.filter((b: any) => b.status === 'pending').length;
+  const pendingWishlist = store.wishlistQueue.length;
+  const pendingCart = store.cartQueue.length;
+  const totalPending = pendingBookings + pendingWishlist + pendingCart;
+
+  if (totalPending === 0) {
+    console.log('[SyncCoordinator] No pending items. Skipping synchronization.');
+    return;
+  }
+
+  // Guard 3: Mutex protection to avoid concurrent runs
+  if (isCoordinatorSyncing) {
+    console.log('[SyncCoordinator] Sync already in progress, skipping trigger.');
+    return;
+  }
+
+  isCoordinatorSyncing = true;
+  console.log('[SyncCoordinator] Starting sequential auto-sync...');
+  store.setSyncStatus('syncing');
+
+  try {
+    // 1. bookingSyncService.sync() must complete before userSyncService.syncAll()
+    await bookingSyncService.sync();
+
+    // 2. userSyncService.syncAll() runs next
+    const { userSyncService } = require('@/services/userSyncService');
+    await userSyncService.syncAll();
+
+    console.log('[SyncCoordinator] Sequential auto-sync completed.');
+  } catch (err) {
+    console.error('[SyncCoordinator] Auto-sync encountered an error:', err);
+  } finally {
+    isCoordinatorSyncing = false;
+
+    // Check if there are still items left in the queues that need to be synced
+    const finalStore = (
+      require('@/store/clientStore').useClientStore
+    ).getState();
+
+    const pendingBookings = finalStore.bookingQueue.filter((b: any) => b.status === 'pending').length;
+    const pendingWishlist = finalStore.wishlistQueue.length;
+    const pendingCart = finalStore.cartQueue.length;
+    const totalPending = pendingBookings + pendingWishlist + pendingCart;
+
+    // If there is any retryable error left in the queues, and we are connected, schedule auto-retry.
+    if (totalPending > 0 && finalStore.isConnected) {
+      finalStore.setSyncStatus('failed');
+
+      if (retryCount < 3) {
+        const delay = (retryCount + 1) * 10000; // 10s, 20s, 30s
+        console.log(`[SyncCoordinator] Queues not empty (${totalPending} pending). Scheduling auto-retry in ${delay / 1000}s (Attempt ${retryCount + 1}/3)`);
+        retryCount += 1;
+        retryTimer = setTimeout(() => {
+          retryTimer = null;
+          triggerSync().catch(console.error);
+        }, delay);
+      } else {
+        console.warn('[SyncCoordinator] Max auto-retries reached. Waiting for next event trigger.');
+      }
+    } else {
+      // Reset retry count on successful clear
+      retryCount = 0;
+      if (totalPending === 0) {
+        finalStore.setSyncStatus('completed');
+      }
+    }
+  }
+}
+

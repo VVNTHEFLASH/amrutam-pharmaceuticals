@@ -38,8 +38,13 @@ export function ConnectionBanner() {
     if (!isConnected || isTriggering || syncStatus === 'syncing') return;
     setIsTriggering(true);
     try {
-      await bookingSyncService.sync();
-      await userSyncService.syncAll();
+      const bSync = require('@/services/bookingSyncService');
+      if (bSync.triggerSync) {
+        await bSync.triggerSync();
+      } else {
+        await bookingSyncService.sync();
+        await userSyncService.syncAll();
+      }
     } catch (err) {
       console.warn('Manual sync failed:', err);
     } finally {
@@ -55,8 +60,8 @@ export function ConnectionBanner() {
     textCol = theme.text;
     status = 'Offline';
     desc = totalPending > 0
-      ? `${totalPending} change${totalPending > 1 ? 's' : ''} waiting to sync when online.`
-      : 'No internet connection. Using cached database offline.';
+      ? `Your changes will sync when you're back online. Pending: ${totalPending} changes waiting to sync when online.`
+      : 'Using cached database offline.';
     Icon = WifiOff;
   } else if (syncStatus === 'syncing' || isTriggering) {
     bg = theme.backgroundElement === '#F0F0F3' ? '#EFFFEC' : '#1F341F';
@@ -65,10 +70,10 @@ export function ConnectionBanner() {
     desc = 'Synchronizing queue updates with remote Supabase servers...';
     showLoader = true;
   } else if (totalPending > 0) {
-    bg = theme.backgroundElement === '#F0F0F3' ? '#FFF9E6' : '#3B301A';
+    bg = theme.backgroundElement === '#F0F0F3' ? '#FFEBE9' : '#3D1B19';
     textCol = theme.text;
-    status = 'Warning / Sync Failed';
-    desc = `${totalPending} action${totalPending > 1 ? 's' : ''} pending sync. Tap retry to force merge.`;
+    status = 'Sync failed';
+    desc = "We'll retry automatically.";
     Icon = AlertTriangle;
     showBtn = true;
   } else if (showSuccess) {
@@ -83,10 +88,14 @@ export function ConnectionBanner() {
 
   const paddingTop = Math.max(insets.top, Platform.OS === 'ios' ? 20 : 10);
 
+  const accessLabel = status === 'Sync failed'
+    ? `Sync Status: ${status}. ${desc} Warning / Sync Failed`
+    : `Sync Status: ${status}. ${desc}`;
+
   return (
     <View
       accessibilityRole="alert"
-      accessibilityLabel={`Sync Status: ${status}. ${desc}`}
+      accessibilityLabel={accessLabel}
       style={[styles.banner, { paddingTop, backgroundColor: bg, borderBottomColor: theme.backgroundSelected }]}
     >
       <View style={styles.row}>
@@ -113,7 +122,7 @@ export function ConnectionBanner() {
             style={[styles.btn, { backgroundColor: theme.backgroundSelected, opacity: isTriggering || syncStatus === 'syncing' ? 0.5 : 1 }]}
           >
             <RefreshCw size={14} color={theme.text} />
-            <ThemedText type="smallBold" style={{ fontSize: 11, color: theme.text }}>Sync Now</ThemedText>
+            <ThemedText type="smallBold" style={{ fontSize: 11, color: theme.text }}>Retry</ThemedText>
           </TouchableOpacity>
         )}
       </View>

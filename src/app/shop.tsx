@@ -12,7 +12,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { useShop } from '@/features/shop/hooks/useShop';
 import { useClientStore } from '@/store/clientStore';
 import { useToastStore } from '@/store/toastStore';
-import { Search, ChevronLeft, ChevronRight, Heart } from 'lucide-react-native';
+import { Search, ChevronLeft, ChevronRight, Heart, Plus, Minus } from 'lucide-react-native';
 import { HorizontalFilterRow } from '@/components/horizontal-filter-row';
 import { productRepository } from '@/services/repositories/productRepository';
 import { Product } from '@/types/domain';
@@ -46,6 +46,9 @@ export default function ShopScreen() {
   const {
     products,
     loading,
+    isLoadingMore,
+    hasMore,
+    loadMore,
     error,
     totalPages,
     totalCount,
@@ -236,8 +239,8 @@ export default function ShopScreen() {
       <SafeAreaView style={s.safe}>
         {/* Top Bar with Wishlist and Cart Buttons */}
         <View style={s.topBar}>
-          <ThemedText type="subtitle">Health Shop</ThemedText>
-          <View style={{ flexDirection: 'row', gap: Spacing.two, alignItems: 'center' }}>
+          <ThemedText type="subtitle" style={{ flexShrink: 1, marginRight: Spacing.two }}>Health Shop</ThemedText>
+          <View style={{ flexDirection: 'row', gap: Spacing.two, alignItems: 'center', flexShrink: 0 }}>
             <Pressable
               style={[s.wishlistIndicator, { backgroundColor: theme.backgroundElement, borderColor: theme.backgroundSelected }]}
               onPress={() => setViewingWishlist(true)}
@@ -367,8 +370,12 @@ export default function ShopScreen() {
             data={products}
             keyExtractor={(item) => item.id}
             contentContainerStyle={{ paddingBottom: 96 }}
+            onEndReached={loadMore}
+            onEndReachedThreshold={0.3}
             renderItem={({ item }) => {
               const isWish = wishlist.includes(item.id);
+              const cartItem = cart.find((c) => c.productId === item.id);
+              const quantity = cartItem ? cartItem.quantity : 0;
               return (
                 <Pressable onPress={() => setSelectedProduct(item)}>
                   <ThemedView type="backgroundElement" style={s.card}>
@@ -384,7 +391,10 @@ export default function ShopScreen() {
                       </View>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.two }}>
                         <Pressable
-                          onPress={() => handleToggleWishlist(item.id, item.name)}
+                          onPress={(e) => {
+                            e.stopPropagation();
+                            handleToggleWishlist(item.id, item.name);
+                          }}
                           style={{ padding: Spacing.two }}
                           accessibilityLabel={isWish ? "Remove from wishlist" : "Add to wishlist"}
                           accessibilityRole="button"
@@ -395,55 +405,100 @@ export default function ShopScreen() {
                             fill={isWish ? '#FF4D4F' : 'transparent'}
                           />
                         </Pressable>
-                        <Pressable style={s.addCartBtn} onPress={() => handleAddToCart(item)}>
-                          <ThemedText type="smallBold" style={{ color: '#fff' }}>
-                            + Add
-                          </ThemedText>
-                        </Pressable>
+                        {quantity > 0 ? (
+                          <View style={s.controls}>
+                            <View style={[s.stepper, { borderColor: theme.backgroundSelected }]}>
+                              <Pressable
+                                disabled={quantity <= 1}
+                                onPress={(e) => {
+                                  e.stopPropagation();
+                                  handleUpdateQty(item.id, quantity - 1);
+                                }}
+                                style={[
+                                  s.stepBtn,
+                                  { backgroundColor: theme.backgroundElement },
+                                  quantity <= 1 && { opacity: 0.3 }
+                                ]}
+                                accessibilityLabel={`Decrease quantity for ${item.name}`}
+                                accessibilityRole="button"
+                                accessibilityState={{ disabled: quantity <= 1 }}
+                              >
+                                <Minus size={16} color={theme.text} />
+                              </Pressable>
+                              <ThemedText type="default" style={[s.qty, { color: theme.text, fontWeight: 'bold' }]}>
+                                {quantity}
+                              </ThemedText>
+                              <Pressable
+                                disabled={quantity >= item.stock}
+                                onPress={(e) => {
+                                  e.stopPropagation();
+                                  handleUpdateQty(item.id, quantity + 1);
+                                }}
+                                style={[
+                                  s.stepBtn,
+                                  { backgroundColor: theme.backgroundElement },
+                                  quantity >= item.stock && { opacity: 0.3 }
+                                ]}
+                                accessibilityLabel={`Increase quantity for ${item.name}`}
+                                accessibilityRole="button"
+                                accessibilityState={{ disabled: quantity >= item.stock }}
+                              >
+                                <Plus size={16} color={theme.text} />
+                              </Pressable>
+                            </View>
+                            <Pressable 
+                              onPress={(e) => {
+                                e.stopPropagation();
+                                handleRemoveFromCart(item.id);
+                              }} 
+                              style={s.removeBtn}
+                            >
+                              <ThemedText type="small" style={{ color: 'red' }}>
+                                Remove
+                              </ThemedText>
+                            </Pressable>
+                          </View>
+                        ) : (
+                          <Pressable 
+                            disabled={item.stock <= 0}
+                            style={[s.addCartBtn, item.stock <= 0 && { backgroundColor: '#ccc' }]} 
+                            onPress={(e) => {
+                              e.stopPropagation();
+                              handleAddToCart(item);
+                            }}
+                            accessibilityLabel={`Add ${item.name} to cart`}
+                            accessibilityRole="button"
+                            accessibilityState={{ disabled: item.stock <= 0 }}
+                          >
+                            <ThemedText type="smallBold" style={{ color: '#fff' }}>
+                              {item.stock <= 0 ? 'Out of Stock' : '+ Add'}
+                            </ThemedText>
+                          </Pressable>
+                        )}
                       </View>
                     </View>
                   </ThemedView>
                 </Pressable>
               );
             }}
+            ListFooterComponent={() => {
+              if (isLoadingMore) {
+                return (
+                  <View style={{ paddingVertical: 16, alignItems: 'center' }} accessibilityLabel="Loading more products" accessibilityRole="progressbar">
+                    <ThemedText type="small">Loading more products...</ThemedText>
+                  </View>
+                );
+              }
+              if (!hasMore && products.length > 0) {
+                return (
+                  <View style={{ paddingVertical: 16, alignItems: 'center' }}>
+                    <ThemedText type="small" themeColor="textSecondary">No more products.</ThemedText>
+                  </View>
+                );
+              }
+              return null;
+            }}
           />
-        )}
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <View style={s.paginationRow}>
-            <Pressable
-              disabled={page === 1}
-              onPress={() => updateFilters({ page: page - 1 })}
-              accessibilityLabel="Previous page"
-              accessibilityRole="button"
-              accessibilityState={{ disabled: page === 1 }}
-              style={[
-                s.pageBtn,
-                { backgroundColor: theme.backgroundElement, borderColor: theme.backgroundSelected },
-                page === 1 && { opacity: 0.3 },
-              ]}>
-              <ChevronLeft size={20} color={theme.text} />
-            </Pressable>
-            <View style={[s.pageIndicator, { backgroundColor: theme.backgroundElement, borderColor: theme.backgroundSelected }]}>
-              <ThemedText type="smallBold" style={{ color: theme.text }}>
-                {page} / {totalPages}
-              </ThemedText>
-            </View>
-            <Pressable
-              disabled={page === totalPages}
-              onPress={() => updateFilters({ page: page + 1 })}
-              accessibilityLabel="Next page"
-              accessibilityRole="button"
-              accessibilityState={{ disabled: page === totalPages }}
-              style={[
-                s.pageBtn,
-                { backgroundColor: theme.backgroundElement, borderColor: theme.backgroundSelected },
-                page === totalPages && { opacity: 0.3 },
-              ]}>
-              <ChevronRight size={20} color={theme.text} />
-            </Pressable>
-          </View>
         )}
       </SafeAreaView>
     </ThemedView>
@@ -453,7 +508,14 @@ export default function ShopScreen() {
 const s = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: Spacing.three, justifyContent: 'center', flexDirection: 'row' },
   safe: { flex: 1, maxWidth: MaxContentWidth, paddingBottom: 0 },
-  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 12 },
+  topBar: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    marginVertical: 12,
+    flexWrap: 'wrap',
+    gap: 8,
+  },
   wishlistIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -483,6 +545,11 @@ const s = StyleSheet.create({
   card: { padding: 12, borderRadius: 8, marginBottom: 8 },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   addCartBtn: { backgroundColor: '#208AEF', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 4 },
+  controls: { alignItems: 'flex-end', gap: 4 },
+  stepper: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 4, overflow: 'hidden' },
+  stepBtn: { width: 32, height: 32, justifyContent: 'center', alignItems: 'center' },
+  qty: { paddingHorizontal: 12, fontSize: 14 },
+  removeBtn: { paddingVertical: 2 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
   retryBtn: { backgroundColor: '#208AEF', paddingHorizontal: 20, paddingVertical: 8, borderRadius: 4, marginTop: 8 },
   paginationRow: {

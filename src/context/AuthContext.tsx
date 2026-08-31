@@ -63,8 +63,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           try {
             const { reconciliationService } = require('@/services/reconciliationService');
             await reconciliationService.reconcileUserData(initialSession.user.id);
-            const { userSyncService } = require('@/services/userSyncService');
-            await userSyncService.syncAll();
+            const { triggerSync } = require('@/services/bookingSyncService');
+            await triggerSync();
           } catch (resErr) {
             console.error('Error reconciling user data:', resErr);
           }
@@ -127,8 +127,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           const { reconciliationService } = require('@/services/reconciliationService');
           await reconciliationService.reconcileUserData(newSession.user.id);
-          const { userSyncService } = require('@/services/userSyncService');
-          await userSyncService.syncAll();
+          const { triggerSync } = require('@/services/bookingSyncService');
+          await triggerSync();
         } catch (resErr) {
           console.error('Error reconciling user data:', resErr);
         }

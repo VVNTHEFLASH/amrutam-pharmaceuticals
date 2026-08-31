@@ -27,13 +27,14 @@ describe('Supabase Repository Integration Tests', () => {
       select: jest.fn().mockReturnThis(),
       eq: jest.fn().mockReturnThis(),
       or: jest.fn().mockReturnThis(),
-      cs: jest.fn().mockReturnThis(),
+      contains: jest.fn().mockReturnThis(),
       gte: jest.fn().mockReturnThis(),
       lte: jest.fn().mockReturnThis(),
       like: jest.fn().mockReturnThis(),
       order: jest.fn().mockReturnThis(),
       range: jest.fn().mockReturnThis(),
       single: jest.fn(),
+      limit: jest.fn().mockResolvedValue({ data: [], error: null }),
     };
 
     (supabase.from as jest.Mock).mockReturnValue(mockQueryChain);
@@ -69,7 +70,7 @@ describe('Supabase Repository Integration Tests', () => {
       expect(supabase.from).toHaveBeenCalledWith('doctors');
       expect(mockQueryChain.select).toHaveBeenCalledWith('*', { count: 'exact' });
       expect(mockQueryChain.eq).toHaveBeenCalledWith('specialty', 'Ayurvedic Specialist');
-      expect(mockQueryChain.cs).toHaveBeenCalledWith('available_days', ['Monday']);
+      expect(mockQueryChain.contains).toHaveBeenCalledWith('available_days', ['Monday']);
       expect(mockQueryChain.order).toHaveBeenCalledWith('seed_index', { ascending: true });
       expect(mockQueryChain.range).toHaveBeenCalledWith(0, 4);
 
@@ -178,6 +179,44 @@ describe('Supabase Repository Integration Tests', () => {
       expect(mockQueryChain.gte).toHaveBeenCalledWith('date', '2024-05-01');
       expect(mockQueryChain.lte).toHaveBeenCalledWith('date', '2024-05-31');
       expect(mockQueryChain.range).toHaveBeenCalledWith(0, 4);
+    });
+
+    it('should query health records with tag filter correctly', async () => {
+      mockQueryChain.range.mockResolvedValue({
+        data: [],
+        count: 0,
+        error: null,
+      });
+
+      await healthRecordRepository.getHealthRecords({
+        page: 1,
+        pageSize: 5,
+        tag: 'Dermatology',
+      });
+
+      expect(mockQueryChain.contains).toHaveBeenCalledWith('tags', ['Dermatology']);
+    });
+
+    it('should query health records with month-only filter and construct dynamic ranges', async () => {
+      mockQueryChain.range.mockResolvedValue({
+        data: [],
+        count: 0,
+        error: null,
+      });
+
+      // Stub limit resolve values
+      mockQueryChain.limit.mockResolvedValue({
+        data: [{ date: '2025-01-01' }],
+        error: null,
+      });
+
+      await healthRecordRepository.getHealthRecords({
+        page: 1,
+        pageSize: 5,
+        month: 8,
+      });
+
+      expect(mockQueryChain.or).toHaveBeenCalled();
     });
   });
 

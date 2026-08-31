@@ -11,6 +11,8 @@ export function useRecords() {
   const [error, setError] = useState<string | null>(null);
   const [pages, setPages] = useState({ totalCount: 0, totalPages: 1 });
 
+  const [queryIdRef] = useState(() => ({ current: 0 }));
+
   const [filters, setFilters] = useState({
     page: 1,
     search: '',
@@ -23,7 +25,10 @@ export function useRecords() {
 
   const fetchRecords = useCallback(async () => {
     setLoading(true);
+    setRecords([]); // Clear list immediately on fetch to prevent showing stale results
     setError(null);
+    const queryId = ++queryIdRef.current;
+
     try {
       const q: HealthRecordQuery = {
         page: filters.page,
@@ -49,15 +54,21 @@ export function useRecords() {
       }
 
       const result = await healthRecordRepository.getHealthRecords(q);
+      if (queryId !== queryIdRef.current) return;
+
       setRecords(result.items);
       setPages({
         totalCount: result.metadata.totalCount,
         totalPages: result.metadata.totalPages,
       });
     } catch (e: any) {
-      setError(e instanceof AppError ? e.message : 'Error loading health records.');
+      if (queryId === queryIdRef.current) {
+        setError(e instanceof AppError ? e.message : 'Error loading health records.');
+      }
     } finally {
-      setLoading(false);
+      if (queryId === queryIdRef.current) {
+        setLoading(false);
+      }
     }
   }, [filters]);
 

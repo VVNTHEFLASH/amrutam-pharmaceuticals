@@ -1,6 +1,9 @@
 {
+  "credentialsSource": "remote",
+  "distribution": "internal",
+  "developmentClient": true,
   "expo": {
-    "name": "amrutam-pharmaceuticals",
+    "name": "Ayurvedic Super App",
     "slug": "amrutam-pharmaceuticals",
     "version": "1.0.0",
     "orientation": "portrait",
