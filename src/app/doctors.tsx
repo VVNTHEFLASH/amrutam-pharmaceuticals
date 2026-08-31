@@ -11,7 +11,7 @@ import { useConsultation } from '@/features/consultation/hooks/useConsultation';
 import { useTheme } from '@/hooks/use-theme';
 import { useClientStore } from '@/store/clientStore';
 import { useToastStore } from '@/store/toastStore';
-import { Doctor, DayOfWeek } from '@/types/domain';
+import { DayOfWeek, Doctor } from '@/types/domain';
 import { AppError, getErrorMessage } from '@/types/errors';
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react-native';
 
@@ -115,6 +115,9 @@ export default function DoctorsScreen() {
   return (
     <ThemedView style={s.container}>
       <SafeAreaView style={s.safe}>
+        <ThemedText type="subtitle" style={s.title}>
+          Consult a Doctor
+        </ThemedText>
         <View style={s.header}>
           <TextInput
             style={s.input}
@@ -250,6 +253,7 @@ export default function DoctorsScreen() {
 const s = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: Spacing.three, justifyContent: 'center', flexDirection: 'row' },
   safe: { flex: 1, maxWidth: MaxContentWidth, paddingBottom: 0 },
+  title: { marginVertical: Spacing.three },
   header: { flexDirection: 'row', gap: 8, marginVertical: 12 },
   input: {
     flex: 1,
