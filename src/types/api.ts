@@ -32,7 +32,7 @@ export interface ProductQuery extends PaginatedQuery {
   minPrice?: number;
   maxPrice?: number;
   minRating?: number;
-  sort?: 'price_asc' | 'price_desc' | 'rating_desc' | 'name_asc';
+  sort?: 'price_asc' | 'price_desc' | 'rating_desc' | 'name_asc' | 'name_desc';
 }
 
 export type HealthRecordType = 'Prescription' | 'Diagnostic Report' | 'Lab Result' | 'Immunization';

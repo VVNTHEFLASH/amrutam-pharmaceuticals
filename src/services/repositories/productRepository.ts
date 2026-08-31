@@ -91,6 +91,9 @@ export const productRepository = {
             case 'name_asc':
               queryBuilder = queryBuilder.order('name', { ascending: true });
               break;
+            case 'name_desc':
+              queryBuilder = queryBuilder.order('name', { ascending: false });
+              break;
           }
         }
 
@@ -162,6 +165,8 @@ export const productRepository = {
               return b.rating - a.rating;
             case 'name_asc':
               return a.name.localeCompare(b.name);
+            case 'name_desc':
+              return b.name.localeCompare(a.name);
             default:
               return 0;
           }
