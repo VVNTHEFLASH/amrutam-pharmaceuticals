@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -8,6 +8,7 @@ import {
   StyleSheet,
   TextInput,
   View,
+  Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -18,6 +19,8 @@ import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/hooks/use-theme';
 import { isSupabaseConfigured } from '@/services/supabase';
 import { useToastStore } from '@/store/toastStore';
+import { biometricService } from '@/services/biometrics';
+import { useFeatureFlag } from '@/services/featureFlags';
 
 export default function ProfileScreen() {
   const {
@@ -33,6 +36,74 @@ export default function ProfileScreen() {
 
   const theme = useTheme();
   const showToast = useToastStore((s) => s.showToast);
+  const [actionLoading, setActionLoading] = useState(false);
+
+  const isBiometricFeatureEnabled = useFeatureFlag('enableBiometricAuth');
+  const [biometricSupported, setBiometricSupported] = useState(false);
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
+  const [checkingBiometrics, setCheckingBiometrics] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      if (!isBiometricFeatureEnabled) {
+        setCheckingBiometrics(false);
+        return;
+      }
+      const supported = await biometricService.checkSupport();
+      setBiometricSupported(supported);
+      if (supported) {
+        const enabled = await biometricService.isEnabled();
+        setBiometricEnabled(enabled);
+      }
+      setCheckingBiometrics(false);
+    })();
+  }, [isBiometricFeatureEnabled]);
+
+  const handleToggleBiometric = async (value: boolean) => {
+    setActionLoading(true);
+    try {
+      const success = await biometricService.setEnabled(value);
+      if (success) {
+        setBiometricEnabled(value);
+        showToast('success', `Biometric lock successfully ${value ? 'enabled' : 'disabled'}.`);
+      } else {
+        showToast('error', 'Authentication failed. Setting remained unchanged.');
+      }
+    } catch (err: any) {
+      showToast('error', 'An error occurred while changing settings.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const renderBiometricSetting = () => {
+    if (!isBiometricFeatureEnabled || checkingBiometrics) return null;
+
+    return (
+      <View style={[s.biometricCard, { backgroundColor: theme.backgroundElement }]}>
+        <View style={s.biometricRow}>
+          <View style={s.biometricTextContainer}>
+            <ThemedText type="smallBold" style={s.biometricLabel}>
+              Biometric Lock
+            </ThemedText>
+            <ThemedText type="small" themeColor="textSecondary" style={s.biometricDesc}>
+              {biometricSupported
+                ? 'Protect application content behind a device biometric screen.'
+                : 'Biometrics are unsupported on this device.'}
+            </ThemedText>
+          </View>
+          <Switch
+            value={biometricEnabled}
+            onValueChange={handleToggleBiometric}
+            disabled={!biometricSupported || actionLoading}
+            trackColor={{ false: theme.backgroundSelected, true: '#208AEF' }}
+            thumbColor={Platform.OS === 'android' ? '#fff' : undefined}
+            accessibilityLabel="Toggle biometric lock"
+          />
+        </View>
+      </View>
+    );
+  };
 
   // Flow toggles
   const [isSignUpFlow, setIsSignUpFlow] = useState(false);
@@ -50,7 +121,6 @@ export default function ProfileScreen() {
   const [editAvatar, setEditAvatar] = useState('');
 
   // Loading & Error States
-  const [actionLoading, setActionLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Track profile initialization when profile loads
@@ -294,6 +364,7 @@ export default function ProfileScreen() {
                   </ThemedText>
                 </Pressable>
               </View>
+              {renderBiometricSetting()}
             </ScrollView>
           </KeyboardAvoidingView>
         </SafeAreaView>
@@ -458,6 +529,7 @@ export default function ProfileScreen() {
                 </ThemedText>
               </Pressable>
             </View>
+            {renderBiometricSetting()}
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -595,5 +667,27 @@ const s = StyleSheet.create({
     color: '#D92D20',
     fontSize: 14,
     textAlign: 'center',
+  },
+  biometricCard: {
+    padding: Spacing.four,
+    borderRadius: 8,
+    width: '100%',
+    marginTop: Spacing.four,
+  },
+  biometricRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  biometricTextContainer: {
+    flex: 1,
+    marginRight: Spacing.two,
+  },
+  biometricLabel: {
+    marginBottom: Spacing.one,
+  },
+  biometricDesc: {
+    fontSize: 12,
+    lineHeight: 16,
   },
 });

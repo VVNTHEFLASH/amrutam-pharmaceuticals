@@ -47,3 +47,43 @@ jest.mock('@react-native-community/datetimepicker', () => {
   });
 });
 
+
+// Mock expo-secure-store
+let mockSecureStoreMemory: { [key: string]: string } = {};
+jest.mock('expo-secure-store', () => {
+  return {
+    getItemAsync: jest.fn(async (key: string) => {
+      return mockSecureStoreMemory[key] !== undefined ? mockSecureStoreMemory[key] : null;
+    }),
+    setItemAsync: jest.fn(async (key: string, value: string) => {
+      mockSecureStoreMemory[key] = String(value);
+    }),
+    deleteItemAsync: jest.fn(async (key: string) => {
+      delete mockSecureStoreMemory[key];
+    }),
+  };
+});
+(globalThis as any).clearSecureStoreMemory = () => {
+  mockSecureStoreMemory = {};
+};
+(globalThis as any).setSecureStoreItemMock = (key: string, value: string) => {
+  mockSecureStoreMemory[key] = value;
+};
+
+// Mock expo-local-authentication
+let mockLocalAuth = {
+  hasHardware: true,
+  isEnrolled: true,
+  authenticateSuccess: true,
+};
+jest.mock('expo-local-authentication', () => {
+  return {
+    hasHardwareAsync: jest.fn(async () => mockLocalAuth.hasHardware),
+    isEnrolledAsync: jest.fn(async () => mockLocalAuth.isEnrolled),
+    authenticateAsync: jest.fn(async () => {
+      return { success: mockLocalAuth.authenticateSuccess };
+    }),
+  };
+});
+(globalThis as any).localAuthMock = mockLocalAuth;
+

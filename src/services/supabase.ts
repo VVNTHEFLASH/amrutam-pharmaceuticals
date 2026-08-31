@@ -1,6 +1,5 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
-import { Platform } from 'react-native';
+import { secureStorage } from './secureStorage';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -16,33 +15,13 @@ export const isSupabaseConfigured = !!(
 
 const customStorage = {
   getItem: async (key: string): Promise<string | null> => {
-    if (Platform.OS === 'web' && typeof window === 'undefined') {
-      return null;
-    }
-    if (Platform.OS === 'web') {
-      return window.localStorage.getItem(key);
-    }
-    return AsyncStorage.getItem(key);
+    return secureStorage.getItem(key);
   },
   setItem: async (key: string, value: string): Promise<void> => {
-    if (Platform.OS === 'web' && typeof window === 'undefined') {
-      return;
-    }
-    if (Platform.OS === 'web') {
-      window.localStorage.setItem(key, value);
-      return;
-    }
-    await AsyncStorage.setItem(key, value);
+    await secureStorage.setItem(key, value);
   },
   removeItem: async (key: string): Promise<void> => {
-    if (Platform.OS === 'web' && typeof window === 'undefined') {
-      return;
-    }
-    if (Platform.OS === 'web') {
-      window.localStorage.removeItem(key);
-      return;
-    }
-    await AsyncStorage.removeItem(key);
+    await secureStorage.removeItem(key);
   },
 };
 
@@ -56,4 +35,5 @@ export const supabase = isSupabaseConfigured
       },
     })
   : (null as any);
+
 

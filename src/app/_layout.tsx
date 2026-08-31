@@ -1,8 +1,9 @@
 import { useEffect } from 'react';
+import { useColorScheme } from 'react-native';
 import { useFonts, Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold, Poppins_700Bold } from '@expo-google-fonts/poppins';
 import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
+import { router } from 'expo-router';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import AppTabs from '@/components/app-tabs';
@@ -11,7 +12,7 @@ import { ConnectionBanner } from '@/components/connection-banner';
 import { AuthProvider } from '@/context/AuthContext';
 import { apiCache } from '@/services/api/apiCache';
 import { routerRegistry } from '@/store/toastStore';
-import { router } from 'expo-router';
+import { BiometricGate } from '@/components/biometric-gate';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -46,11 +47,14 @@ export default function TabLayout() {
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <AnimatedSplashOverlay />
         <ConnectionBanner />
-        <AppTabs />
+        <BiometricGate>
+          <AppTabs />
+        </BiometricGate>
         <ToastContainer />
       </ThemeProvider>
     </AuthProvider>
   );
 }
+
 
 
