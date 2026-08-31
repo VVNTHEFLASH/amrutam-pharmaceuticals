@@ -245,7 +245,7 @@ describe('ShopScreen Filters and Sorting UI', () => {
     expect(images.length).toBe(2);
 
     // First product image should use fallback
-    expect(images[0].props.source.uri).toBe('https://placehold.co/150/png?text=Product');
+    expect(images[0].props.source.uri).toBe('https://placehold.co/150/png?text=Product A');
     // Second product image should use its own imageUrl
     expect(images[1].props.source.uri).toBe('https://example.com/custom.jpg');
   });
