@@ -1,22 +1,24 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { FlatList, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { FlatList, Image, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { HorizontalFilterRow } from '@/components/horizontal-filter-row';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { CartView } from '@/features/shop/components/CartView';
 import { ProductDetail } from '@/features/shop/components/ProductDetail';
 import { WishlistView } from '@/features/shop/components/WishlistView';
-import { useTheme } from '@/hooks/use-theme';
 import { useShop } from '@/features/shop/hooks/useShop';
+import { useTheme } from '@/hooks/use-theme';
+import { productRepository } from '@/services/repositories/productRepository';
 import { useClientStore } from '@/store/clientStore';
 import { useToastStore } from '@/store/toastStore';
-import { Search, ChevronLeft, ChevronRight, Heart, Plus, Minus } from 'lucide-react-native';
-import { HorizontalFilterRow } from '@/components/horizontal-filter-row';
-import { productRepository } from '@/services/repositories/productRepository';
 import { Product } from '@/types/domain';
 import { AppError, getErrorMessage } from '@/types/errors';
+import { Heart, Minus, Plus, Search } from 'lucide-react-native';
+
+const FALLBACK_IMAGE = (name: string | undefined) => `https://placehold.co/150/png?text=${name || 'Product'}`;
 
 const CATS = ['Ayurvedic Medicine', 'Homeopathy', 'Wellness & Nutrition', 'Personal Care', 'Baby Care', 'Devices'];
 
@@ -34,13 +36,6 @@ const RATINGS = [
   { label: '★ 4.0+', val: 4.0 },
   { label: '★ 4.5+', val: 4.5 },
 ];
-
-const SORTS = [
-  { label: '★ Rating', val: 'rating_desc' },
-  { label: 'Price ↑', val: 'price_asc' },
-  { label: 'Price ↓', val: 'price_desc' },
-  { label: 'A-Z', val: 'name_asc' },
-] as const;
 
 export default function ShopScreen() {
   const {
@@ -282,17 +277,26 @@ export default function ShopScreen() {
         <HorizontalFilterRow>
           <Pressable
             onPress={() => updateFilters({ category: '', page: 1 })}
-            style={[s.chip, { backgroundColor: theme.backgroundElement }, !filters.category && s.act]}>
-            <ThemedText type="small">All Categories</ThemedText>
+            style={[s.chip, { backgroundColor: theme.backgroundElement }, !filters.category && s.act]}
+            accessibilityRole="button"
+            accessibilityLabel="Filter by All categories"
+          >
+            <ThemedText type="small" style={!filters.category ? { color: '#ffffff', fontWeight: '600' } : undefined}>All Categories</ThemedText>
           </Pressable>
-          {CATS.map((cat) => (
-            <Pressable
-              key={cat}
-              onPress={() => updateFilters({ category: cat, page: 1 })}
-              style={[s.chip, { backgroundColor: theme.backgroundElement }, filters.category === cat && s.act]}>
-              <ThemedText type="small">{cat}</ThemedText>
-            </Pressable>
-          ))}
+          {CATS.map((cat) => {
+            const isSel = filters.category === cat;
+            return (
+              <Pressable
+                key={cat}
+                onPress={() => updateFilters({ category: cat, page: 1 })}
+                style={[s.chip, { backgroundColor: theme.backgroundElement }, isSel && s.act]}
+                accessibilityRole="button"
+                accessibilityLabel={`Filter by ${cat}`}
+              >
+                <ThemedText type="small" style={isSel ? { color: '#ffffff', fontWeight: '600' } : undefined}>{cat}</ThemedText>
+              </Pressable>
+            );
+          })}
         </HorizontalFilterRow>
 
         {/* Price Filters */}
@@ -303,8 +307,11 @@ export default function ShopScreen() {
               <Pressable
                 key={pr.label}
                 onPress={() => updateFilters({ minPrice: pr.min, maxPrice: pr.max, page: 1 })}
-                style={[s.chip, { backgroundColor: theme.backgroundElement }, isAct && s.act]}>
-                <ThemedText type="small">{pr.label}</ThemedText>
+                style={[s.chip, { backgroundColor: theme.backgroundElement }, isAct && s.act]}
+                accessibilityRole="button"
+                accessibilityLabel={`Filter by ${pr.label}`}
+              >
+                <ThemedText type="small" style={isAct ? { color: '#ffffff', fontWeight: '600' } : undefined}>{pr.label}</ThemedText>
               </Pressable>
             );
           })}
@@ -318,8 +325,11 @@ export default function ShopScreen() {
               <Pressable
                 key={rt.label}
                 onPress={() => updateFilters({ minRating: rt.val, page: 1 })}
-                style={[s.chip, { backgroundColor: theme.backgroundElement }, isAct && s.act]}>
-                <ThemedText type="small">{rt.label}</ThemedText>
+                style={[s.chip, { backgroundColor: theme.backgroundElement }, isAct && s.act]}
+                accessibilityRole="button"
+                accessibilityLabel={`Filter by ${rt.label}`}
+              >
+                <ThemedText type="small" style={isAct ? { color: '#ffffff', fontWeight: '600' } : undefined}>{rt.label}</ThemedText>
               </Pressable>
             );
           })}
@@ -327,14 +337,66 @@ export default function ShopScreen() {
 
         {/* Sorting */}
         <View style={s.sortRow}>
-          {SORTS.map((opt) => (
-            <Pressable
-              key={opt.val}
-              onPress={() => updateFilters({ sort: opt.val, page: 1 })}
-              style={[s.sort, { backgroundColor: theme.backgroundElement }, filters.sort === opt.val && { backgroundColor: theme.backgroundSelected }]}>
-              <ThemedText type="small">{opt.label}</ThemedText>
-            </Pressable>
-          ))}
+          {(() => {
+            const isRatingSelected = filters.sort === 'rating_desc';
+            const isPriceAscSelected = filters.sort === 'price_asc';
+            const isPriceDescSelected = filters.sort === 'price_desc';
+            const isNameSelected = filters.sort === 'name_asc' || filters.sort === 'name_desc';
+
+            const sortOptions = [
+              {
+                key: 'rating',
+                label: '★ Rating',
+                selected: isRatingSelected,
+                onPress: () => updateFilters({ sort: 'rating_desc', page: 1 }),
+              },
+              {
+                key: 'price_asc',
+                label: 'Price ↑',
+                selected: isPriceAscSelected,
+                onPress: () => updateFilters({ sort: 'price_asc', page: 1 }),
+              },
+              {
+                key: 'price_desc',
+                label: 'Price ↓',
+                selected: isPriceDescSelected,
+                onPress: () => updateFilters({ sort: 'price_desc', page: 1 }),
+              },
+              {
+                key: 'name',
+                label: filters.sort === 'name_desc' ? 'Z-A' : 'A-Z',
+                selected: isNameSelected,
+                onPress: () => {
+                  if (filters.sort === 'name_asc') {
+                    updateFilters({ sort: 'name_desc', page: 1 });
+                  } else {
+                    updateFilters({ sort: 'name_asc', page: 1 });
+                  }
+                },
+              },
+            ];
+
+            return sortOptions.map((opt) => (
+              <Pressable
+                key={opt.key}
+                onPress={opt.onPress}
+                accessibilityRole="button"
+                accessibilityLabel={`Sort by ${opt.key}`}
+                style={[
+                  s.sort,
+                  { backgroundColor: theme.backgroundElement },
+                  opt.selected && s.act
+                ]}
+              >
+                <ThemedText
+                  type="small"
+                  style={opt.selected ? { color: '#ffffff', fontWeight: '600' } : undefined}
+                >
+                  {opt.label}
+                </ThemedText>
+              </Pressable>
+            ));
+          })()}
         </View>
 
         {/* Results details */}
@@ -380,6 +442,11 @@ export default function ShopScreen() {
                 <Pressable onPress={() => setSelectedProduct(item)}>
                   <ThemedView type="backgroundElement" style={s.card}>
                     <View style={s.row}>
+                      <Image
+                        source={{ uri: item.imageUrl || FALLBACK_IMAGE(item.name) }}
+                        style={s.productThumbnail}
+                        accessibilityLabel={item.name}
+                      />
                       <View style={{ flex: 1 }}>
                         <ThemedText type="default" style={{ fontWeight: 'bold' }}>{item.name}</ThemedText>
                         <ThemedText type="small" themeColor="textSecondary">
@@ -544,6 +611,14 @@ const s = StyleSheet.create({
   actSort: { backgroundColor: '#ccc' },
   card: { padding: 12, borderRadius: 8, marginBottom: 8 },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  productThumbnail: {
+    width: 60,
+    height: 60,
+    borderRadius: 6,
+    marginRight: 10,
+    backgroundColor: '#eee',
+    resizeMode: 'contain',
+  },
   addCartBtn: { backgroundColor: '#208AEF', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 4 },
   controls: { alignItems: 'flex-end', gap: 4 },
   stepper: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 4, overflow: 'hidden' },

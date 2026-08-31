@@ -20,7 +20,7 @@ export function useShop() {
     minPrice: undefined as number | undefined,
     maxPrice: undefined as number | undefined,
     minRating: undefined as number | undefined,
-    sort: 'rating_desc' as 'price_asc' | 'price_desc' | 'rating_desc' | 'name_asc',
+    sort: 'rating_desc' as 'price_asc' | 'price_desc' | 'rating_desc' | 'name_asc' | 'name_desc',
   });
 
   const [queryIdRef] = useState(() => ({ current: 0 }));

@@ -17,7 +17,7 @@ This checklist reports the current state of features, compliance with constraint
 
 - [x] **Doctor Listing**: Displays practitioner metadata, consultation fees, experience, and photo slots.
 - [x] **Search**: Allows users to filter doctors in real time by name and medical specialty.
-- [x] **Filters**: Real-time filtering panel for availability (days of the week) and specialties (e.g. Ayurveda, General).
+- [x] **Filters**: Real-time filtering panel for availability (days of the week) and specialties (e.g. Ayurveda, General) refined with dynamic fee sorting direction arrows, A-Z / Z-A name toggles, visual contrast highlights, and doctor star ratings in list items.
 - [x] **Doctor Details**: Dedicated profile overlay sheet rendering biographies, fee details, and select date sliders.
 - [x] **Available Slots**: Dynamic, interactive slot buttons showing available timings mapping to the selected date.
 - [x] **Booking Flow**: Complete checkout flow utilizing an offline transaction queue (`bookingQueue`) syncing in background.
@@ -35,8 +35,8 @@ This checklist reports the current state of features, compliance with constraint
 - [x] **Product Listing**: Renders product catalog list with images, pricing, vendor sources, and rating stars.
 - [x] **Infinite Scroll**: Utilizes memory-safe paging boundaries loaded via `useShop` parameters appended on `onEndReached` triggers structure.
 - [x] **Search**: Searches products instantly by matching character substrings in names/descriptions.
-- [x] **Multi-filter**: Supports filters matching category types, minimum ratings values, and price range sliders.
-- [x] **Sorting**: Offers quick sort options (Price: Low to High, Price: High to Low, Rating, Name).
+- [x] **Multi-filter**: Supports filters matching category types, minimum ratings values, and price range sliders, refined with visual contrast highlights and white text selection styling.
+- [x] **Sorting**: Offers quick sort options (Price: Low to High, Price: High to Low, Rating, Name), refined with dynamic A-Z / Z-A alphabetical sorting direction toggle (defaulting to a non-highlighted A-Z state).
 - [x] **Product Details**: Overlay view rendering descriptions, rating counts, stock safety caps, and add-to-wishlist triggers.
 - [x] **Cart Management**: Bottom drawer listing cart items, enabling quantity adjustments, and calculating subtotals.
 - [x] **Quantity Updates**: Limits item counts within available stock quantities (`stock_quantity`) stored in DB mock sources.

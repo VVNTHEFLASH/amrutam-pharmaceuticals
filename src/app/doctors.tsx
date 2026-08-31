@@ -80,9 +80,14 @@ export default function DoctorsScreen() {
               {item.specialty} • ₹{item.consultationFee}
             </ThemedText>
           </View>
-          <ThemedText type="default" style={{ fontWeight: '600', color: '#208AEF' }}>
-            Book
-          </ThemedText>
+          <View style={{ alignItems: 'flex-end', justifyContent: 'center' }}>
+            <ThemedText type="small" style={{ color: '#FFA800', fontWeight: '600', marginBottom: 2 }} accessibilityLabel={`Rating: ${item.rating.toFixed(1)} stars`}>
+              ★ {item.rating.toFixed(1)}
+            </ThemedText>
+            <ThemedText type="default" style={{ fontWeight: '600', color: '#208AEF' }}>
+              Book
+            </ThemedText>
+          </View>
         </View>
       </ThemedView>
     </Pressable>
@@ -138,48 +143,113 @@ export default function DoctorsScreen() {
         <HorizontalFilterRow>
           <Pressable
             onPress={() => setFilters({ specialty: '', page: 1 })}
-            style={[s.chip, { backgroundColor: theme.backgroundElement }, !specialty && s.act]}>
-            <ThemedText type="small">All Specialties</ThemedText>
+            style={[s.chip, { backgroundColor: theme.backgroundElement }, !specialty && s.act]}
+            accessibilityRole="button"
+            accessibilityLabel="Filter by All Specialties"
+          >
+            <ThemedText type="small" style={!specialty ? { color: '#ffffff', fontWeight: '600' } : undefined}>All Specialties</ThemedText>
           </Pressable>
-          {SP.map((sp) => (
-            <Pressable
-              key={sp}
-              onPress={() => setFilters({ specialty: sp, page: 1 })}
-              style={[s.chip, { backgroundColor: theme.backgroundElement }, specialty === sp && s.act]}>
-              <ThemedText type="small">{sp}</ThemedText>
-            </Pressable>
-          ))}
+          {SP.map((sp) => {
+            const isSel = specialty === sp;
+            return (
+              <Pressable
+                key={sp}
+                onPress={() => setFilters({ specialty: sp, page: 1 })}
+                style={[s.chip, { backgroundColor: theme.backgroundElement }, isSel && s.act]}
+                accessibilityRole="button"
+                accessibilityLabel={`Filter by ${sp}`}
+              >
+                <ThemedText type="small" style={isSel ? { color: '#ffffff', fontWeight: '600' } : undefined}>{sp}</ThemedText>
+              </Pressable>
+            );
+          })}
         </HorizontalFilterRow>
 
         <HorizontalFilterRow>
           <Pressable
             onPress={() => setFilters({ availability: '', page: 1 })}
-            style={[s.chip, { backgroundColor: theme.backgroundElement }, !availability && s.act]}>
-            <ThemedText type="small">Any Day</ThemedText>
+            style={[s.chip, { backgroundColor: theme.backgroundElement }, !availability && s.act]}
+            accessibilityRole="button"
+            accessibilityLabel="Filter by Any Day"
+          >
+            <ThemedText type="small" style={!availability ? { color: '#ffffff', fontWeight: '600' } : undefined}>Any Day</ThemedText>
           </Pressable>
-          {DY.map((dy) => (
-            <Pressable
-              key={dy}
-              onPress={() => setFilters({ availability: dy, page: 1 })}
-              style={[s.chip, { backgroundColor: theme.backgroundElement }, availability === dy && s.act]}>
-              <ThemedText type="small">{dy}</ThemedText>
-            </Pressable>
-          ))}
+          {DY.map((dy) => {
+            const isSel = availability === dy;
+            return (
+              <Pressable
+                key={dy}
+                onPress={() => setFilters({ availability: dy, page: 1 })}
+                style={[s.chip, { backgroundColor: theme.backgroundElement }, isSel && s.act]}
+                accessibilityRole="button"
+                accessibilityLabel={`Filter by ${dy}`}
+              >
+                <ThemedText type="small" style={isSel ? { color: '#ffffff', fontWeight: '600' } : undefined}>{dy}</ThemedText>
+              </Pressable>
+            );
+          })}
         </HorizontalFilterRow>
 
         <View style={s.sortRow}>
-          {([
-            { label: '★ Rating', val: 'rating_desc' },
-            { label: 'Fee ↑', val: 'fee_asc' },
-            { label: 'A-Z', val: 'name_asc' },
-          ] as const).map((opt) => (
-            <Pressable
-              key={opt.val}
-              onPress={() => setFilters({ sort: opt.val, page: 1 })}
-              style={[s.sort, { backgroundColor: theme.backgroundElement }, sort === opt.val && { backgroundColor: theme.backgroundSelected }]}>
-              <ThemedText type="small">{opt.label}</ThemedText>
-            </Pressable>
-          ))}
+          {(() => {
+            const isRatingSelected = sort === 'rating_desc';
+            const isFeeSelected = sort === 'fee_asc' || sort === 'fee_desc';
+            const isNameSelected = sort === 'name_asc' || sort === 'name_desc';
+
+            const sortOptions = [
+              {
+                key: 'rating',
+                label: '★ Rating',
+                selected: isRatingSelected,
+                onPress: () => setFilters({ sort: 'rating_desc', page: 1 }),
+              },
+              {
+                key: 'fee',
+                label: sort === 'fee_desc' ? 'Fee ↓' : sort === 'fee_asc' ? 'Fee ↑' : 'Fee',
+                selected: isFeeSelected,
+                onPress: () => {
+                  if (sort === 'fee_asc') {
+                    setFilters({ sort: 'fee_desc', page: 1 });
+                  } else {
+                    setFilters({ sort: 'fee_asc', page: 1 });
+                  }
+                },
+              },
+              {
+                key: 'name',
+                label: sort === 'name_desc' ? 'Z-A' : 'A-Z',
+                selected: isNameSelected,
+                onPress: () => {
+                  if (sort === 'name_asc') {
+                    setFilters({ sort: 'name_desc', page: 1 });
+                  } else {
+                    setFilters({ sort: 'name_asc', page: 1 });
+                  }
+                },
+              },
+            ];
+
+            return sortOptions.map((opt) => (
+              <Pressable
+                key={opt.key}
+                onPress={opt.onPress}
+                accessibilityRole="button"
+                accessibilityLabel={`Sort by ${opt.key}`}
+                style={[
+                  s.sort,
+                  { backgroundColor: theme.backgroundElement },
+                  opt.selected && s.act
+                ]}
+              >
+                <ThemedText
+                  type="small"
+                  style={opt.selected ? { color: '#ffffff', fontWeight: '600' } : undefined}
+                >
+                  {opt.label}
+                </ThemedText>
+              </Pressable>
+            ));
+          })()}
         </View>
 
         {loading ? (

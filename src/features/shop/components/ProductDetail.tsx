@@ -1,12 +1,13 @@
-import React from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Heart } from 'lucide-react-native';
+import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
-import { Product } from '@/types/domain';
 import { useTheme } from '@/hooks/use-theme';
+import { Product } from '@/types/domain';
+
+const FALLBACK_IMAGE = (name: string | undefined) => `https://placehold.co/300/png?text=${name || 'Product Image'}`;
 
 interface ProductDetailProps {
   product: Product;
@@ -57,6 +58,13 @@ export function ProductDetail({
               />
             </Pressable>
           </View>
+
+          <Image
+            source={{ uri: product.imageUrl || FALLBACK_IMAGE(product.name) }}
+            style={s.detailImage}
+            accessibilityLabel={product.name}
+          />
+
           <ThemedText type="default" themeColor="textSecondary" style={s.category}>
             Category: {product.category}
           </ThemedText>
@@ -145,6 +153,14 @@ const s = StyleSheet.create({
   scroll: { paddingBottom: 96 },
   card: { padding: Spacing.four, borderRadius: Spacing.three },
   name: { fontWeight: '600', marginBottom: Spacing.one },
+  detailImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 8,
+    marginBottom: Spacing.three,
+    backgroundColor: '#eee',
+    resizeMode: 'cover',
+  },
   category: { marginBottom: Spacing.two },
   rating: { fontSize: 14, color: '#f1c40f', marginBottom: Spacing.two },
   price: { fontWeight: 'bold', color: '#2ecc71', marginBottom: Spacing.one },
